@@ -66,6 +66,10 @@ NESTang/SNESTang   |
 
 The ROM folders list only the files the core can load: NES `.nes`; SNES `.smc` `.sfc`; Game Boy Advance `.gba`; MegaDrive/Genesis `.bin` `.md` `.gen`; Master System `.sms` `.sg` and Game Gear `.gg`; PC/XT floppy images `.img`. The `gba_bios.bin` in the GBA folder is hidden; it's loaded automatically. Folders are always listed. The Cores folder lists everything.
 
+### Game saves
+
+Master System and Game Gear games that save (battery-backed RAM, such as Phantasy Star) keep their saves on the drive, in `saves/sms/<game>.sav` next to the ROM folders; the folder is created when needed. A save is written about 2 seconds after the game saves, and also when you open a menu, load another game, reset or close the game, so it survives power-off. The files use the same 32 KB layout as MiSTer's SMS core, so saves can be copied between the two. The other cores don't keep saves yet.
+
 ### Hardware Assembly
 1. Connect components as shown (DS2 controller setup shown):
    ![](tangcore-user.jpg)
