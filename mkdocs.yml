@@ -77,6 +77,7 @@ nav:
   - Developer Guide:
     - Architecture: dev-guide/architecture.md
     - Building: dev-guide/building.md
+    - Building Cores: dev-guide/building-cores.md
     - Core Development: dev-guide/core-development.md
     - Core Debugging: dev-guide/core-debugging.md
 

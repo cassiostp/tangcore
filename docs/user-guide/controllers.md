@@ -18,3 +18,28 @@ Here are some test results for controllers.
 
 My personal favorite is the 8BitDo wireless adapter paired with an 8BitDo Pro 2 controller. It offers excellent button layout, reliable wireless connectivity, and minimal input lag. Please note that each adapter can only pair with one controller, so you'll need two adapters for two-player gaming.
 
+
+## Ports
+
+The two bottom USB-A ports are wired to the FPGA. The **left** one is player 1 and the **right** one is player 2. Most NES, SNES and Genesis games only respond to player 1, so plug a single pad into the left port. Game Boy Advance reads both ports as its one player.
+
+## In-game controls
+
+| Action | How |
+|---|---|
+| Open the game menu | Press **Select + Start + L** together. |
+| Back to the game | Press **Select + Start + L** again, or choose **Resume**. |
+| Quit the game | Hold **Select + Start + R** for 3 seconds, or choose **Quit game** in the game menu. |
+| Restart everything | Press **MODE** on the console. It's like a power cycle. |
+
+The game menu has **Resume**, **Quit game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
+
+The two button combinations can be changed under **Options** in the main menu:
+
+1. Select **Menu** or **Quit**.
+2. Hold the 3 buttons you want, all at once, for about a second, until "got it" appears.
+3. Select **Save**.
+
+A combination must be exactly 3 buttons and include **Select** or **Start**, so it can't go off by accident during play.
+
+Settings are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`.
