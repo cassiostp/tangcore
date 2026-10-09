@@ -68,7 +68,7 @@ The ROM folders list only the files the core can load: NES `.nes`; SNES `.smc` `
 
 ### Game saves
 
-Master System and Game Gear games that save (battery-backed RAM, such as Phantasy Star) keep their saves on the drive, in `saves/sms/<game>.sav` next to the ROM folders; the folder is created when needed. A save is written about 2 seconds after the game saves, and also when you open a menu, load another game, reset or close the game, so it survives power-off. The files use the same 32 KB layout as MiSTer's SMS core, so saves can be copied between the two. The other cores don't keep saves yet.
+Games with battery-backed saves keep them on the drive: Master System and Game Gear games (such as Phantasy Star) in `saves/sms/<game>.sav`, SNES games (such as Super Mario World) in `saves/snes/<game>.sav`. The folders are created when needed, and SNES games without save RAM get no file. A save is written about 2 seconds after the game saves, and also when you open a menu, load another game, reset or close the game, so it survives power-off. While a SNES save is written the game pauses briefly (a few hundredths of a second for most games, about a second and a half for the largest 128 KB saves). The files use the same layout as MiSTer's SMS and SNES cores, so saves can be copied between them. NES, Game Boy Advance and MegaDrive/Genesis don't keep saves yet.
 
 ### Hardware Assembly
 1. Connect components as shown (DS2 controller setup shown):
