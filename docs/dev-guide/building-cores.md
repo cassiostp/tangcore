@@ -12,14 +12,14 @@ edition needs no licence), caches it for later runs, and runs
 
 ```bash
 # build nestang at its default branch
-gh workflow run cores -R cassiostp/tangcore --ref <branch-of-tangcore> -f core=nestang
+gh workflow run cores.yml -R cassiostp/tangcore --ref <branch-of-tangcore> -f core=nestang
 
 # build a branch of the core repo, for the 60K console
-gh workflow run cores -R cassiostp/tangcore --ref <branch-of-tangcore> \
+gh workflow run cores.yml -R cassiostp/tangcore --ref <branch-of-tangcore> \
   -f core=nestang -f ref=<core-branch> -f board=console60k
 
 # watch it
-gh run list -R cassiostp/tangcore --workflow cores
+gh run list -R cassiostp/tangcore --workflow cores.yml
 gh run watch <run-id> -R cassiostp/tangcore
 ```
 
