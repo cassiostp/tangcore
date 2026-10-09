@@ -114,7 +114,8 @@ jobs:
             find "$HOME/gowin" -maxdepth 3 | head -n 40
             exit 1
           fi
-          echo "GOWIN_ROOT=$(dirname "$(dirname "$gws")")" >> "$GITHUB_ENV"
+          # gws = <root>/IDE/bin/gw_sh
+          echo "GOWIN_ROOT=${gws%/IDE/bin/gw_sh}" >> "$GITHUB_ENV"
 
       - name: Install system libraries
         run: |
