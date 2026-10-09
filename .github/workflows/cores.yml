@@ -144,7 +144,10 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           rm -rf impl/gwsynthesis impl/pnr
-          "$GOWIN_ROOT/IDE/bin/gw_sh" build.tcl "$BOARD" 2>&1 | tee build.log
+          # run all in V1.9.11 writes only HTML timing reports by default;
+          # ask for the plain-text .tr so the next step can check it
+          printf 'set_option -gen_text_timing_rpt 1\nsource build.tcl\n' > ci_build.tcl
+          "$GOWIN_ROOT/IDE/bin/gw_sh" ci_build.tcl "$BOARD" 2>&1 | tee build.log
           exit "${PIPESTATUS[0]}"
 
       - name: Check timing and bitstream

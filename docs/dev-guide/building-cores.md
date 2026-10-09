@@ -27,8 +27,8 @@ Inputs: `core` (nestang, snestang, gbatang, mdtang, smstang), `ref` (branch,
 tag or SHA in `cassiostp/<core>`; empty means the repo's default branch) and
 `board` (`console138k` or `console60k`). A synthesis or place-and-route error,
 a timing violation, or a missing `.bin` fails the job; the run summary shows
-the max-frequency and resource usage of the build. A run takes roughly one to
-two hours.
+the max-frequency and resource usage of the build. A run takes roughly ten
+minutes; the Gowin download (~680 MB) is cached between runs.
 
 ## The artifact
 
