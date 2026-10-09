@@ -144,54 +144,81 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           rm -rf impl/gwsynthesis impl/pnr
-          # run all in V1.9.11 writes only HTML timing reports by default;
-          # ask for the plain-text .tr so the next step can check it
-          printf 'set_option -gen_text_timing_rpt 1\nsource build.tcl\n' > ci_build.tcl
+          # V1.9.11 writes only HTML timing reports by default. Ask for the
+          # plain-text .tr right before "run all" (set_device in build.tcl
+          # resets options set earlier).
+          grep -q '^run all' build.tcl || { echo "::error::build.tcl has no 'run all' line"; exit 1; }
+          sed 's/^run all/set_option -gen_text_timing_rpt 1\nrun all/' build.tcl > ci_build.tcl
           "$GOWIN_ROOT/IDE/bin/gw_sh" ci_build.tcl "$BOARD" 2>&1 | tee build.log
           exit "${PIPESTATUS[0]}"
 
       - name: Check timing and bitstream
         working-directory: core-src
         run: |
-          set +eo pipefail
-          shopt -s nullglob
-          bins=(impl/pnr/*.bin)
-          trs=(impl/pnr/*.tr)
-          fail=0
-          if [ ${#bins[@]} -eq 0 ]; then
-            echo "::error::no .bin produced under impl/pnr/ (see build.log)"
-            fail=1
-          fi
-          if [ ${#trs[@]} -eq 0 ]; then
-            echo "::error::no timing report (.tr) under impl/pnr/"
-            fail=1
-          else
-            tr="${trs[0]}"
-            for kind in Setup Hold; do
-              n=$(sed -n "s/.*<Numbers of ${kind} Violated Endpoints>:\([0-9][0-9]*\).*/\1/p" "$tr" | head -n1)
-              if [ -z "$n" ]; then
-                echo "::error::could not read $kind violation count from $tr"
-                fail=1
-              elif [ "$n" -gt 0 ]; then
-                echo "::error::$kind timing violations: $n endpoint(s)"
-                fail=1
-              fi
-            done
-            {
-              echo "## $CORE / $BOARD"
-              echo
-              echo "### Timing (Max Frequency Summary)"
-              echo '```'
-              awk '/Max Frequency Summary/{f=1} f{print} f&&/Negative Slack Summary/{exit}' "$tr" | grep -vE '^No timing paths' | head -n 30
-              echo '```'
-              echo "### Resources"
-              echo '```'
-              rpt=$(ls impl/pnr/*.rpt.txt 2>/dev/null | head -n1)
-              [ -n "$rpt" ] && grep -E '^[ ]*(Logic|Register|CLS|BSRAM|I/O Port|DSP)' "$rpt" | head -n 10
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-          exit $fail
+          python3 <<'PY'
+          import glob, os, re, sys
+
+          core, board = os.environ['CORE'], os.environ['BOARD']
+          bins = sorted(glob.glob('impl/pnr/*.bin'))
+          # V1.9.8/.9 wrote plain .tr; V1.9.11 only *_tr_content.html / .tr.html
+          srcs = sorted(glob.glob('impl/pnr/*.tr')) + \
+                 sorted(glob.glob('impl/pnr/*_tr_content.html')) + \
+                 sorted(glob.glob('impl/pnr/*.tr.html'))
+          ok = True
+          if not bins:
+              print('::error::no .bin produced under impl/pnr/ (see build.log)')
+              ok = False
+          if not srcs:
+              print('::error::no timing report (.tr / *_tr_content.html) under impl/pnr/')
+              ok = False
+
+          viol, fmax = {}, []
+          if srcs:
+              text = open(srcs[0], errors='replace').read()
+              for kind in ('Setup', 'Hold'):
+                  for pat in (rf'<Numbers of {kind} Violated Endpoints>:\s*(\d+)',
+                              rf'Numbers of {kind} Violated Endpoints</td>\s*<td[^>]*>\s*(\d+)'):
+                      m = re.search(pat, text)
+                      if m:
+                          viol[kind] = int(m.group(1))
+                          break
+                  else:
+                      print(f'::error::could not read {kind} violation count from {srcs[0]}')
+                      ok = False
+              for kind, n in viol.items():
+                  if n > 0:
+                      print(f'::error::{kind} timing violations: {n} endpoint(s)')
+                      ok = False
+              # Fmax table: section from "Max Frequency Summary" to its </table>
+              sec = ''
+              i = text.find('Max Frequency Summary')
+              if i >= 0:
+                  sec = text[i:text.find('</table>', i)]
+                  fmax = re.findall(r'<td>\d+</td>\s*<td>([^<]+)</td>\s*<td>([^<]+)</td>\s*<td>([^<]+)</td>\s*<td>(\d+)</td>', sec)
+              if not fmax:  # plain text report
+                  fmax = re.findall(r'^\s*\d+\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)\s+\S+\s*$', sec, re.M)
+
+          res = []
+          rpts = sorted(glob.glob('impl/pnr/*.rpt.txt'))
+          if rpts:
+              res = re.findall(r'^ *(?:Logic|Register|CLS|BSRAM|I/O Port|DSP)\b.*$',
+                               open(rpts[0], errors='replace').read(), re.M)
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as s:
+              s.write(f'## {core} / {board}\n\n')
+              s.write('Timing: ' + (', '.join(f'{k} violated endpoints: {v}' for k, v in viol.items())
+                                   or 'not found') + '\n\n')
+              if fmax:
+                  s.write('| clock | constraint | Fmax | level |\n|---|---|---|---|\n')
+                  for c, cons, fm, lvl in fmax:
+                      s.write(f'| {c} | {cons} | {fm} | {lvl} |\n')
+              else:
+                  s.write('No Fmax table in the timing report.\n')
+              if res:
+                  s.write('\n```\n' + '\n'.join(res) + '\n```\n')
+
+          sys.exit(0 if ok else 1)
+          PY
 
       - name: Collect artifact files
         if: always()
@@ -202,7 +229,9 @@ jobs:
           bin=$(ls core-src/impl/pnr/*.bin 2>/dev/null | head -n1)
           # rename to the file name TangCore's firmware looks for on the SD card
           [ -n "$bin" ] && cp "$bin" "dist/$CORE.bin"
-          cp core-src/impl/pnr/*.tr.html core-src/impl/pnr/*.rpt.txt dist/ 2>/dev/null
+          # reports, for context when a build fails
+          cp core-src/impl/pnr/*.rpt.txt core-src/impl/pnr/*.tr \
+             core-src/impl/pnr/*_tr_content.html core-src/impl/pnr/*.tr.html dist/ 2>/dev/null
           true
 
       - name: Upload bitstream and log
