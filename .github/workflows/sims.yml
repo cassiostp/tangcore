@@ -19,13 +19,17 @@ on:
         type: string
         required: false
         default: feature/battery-saves
-
+  # Runs when this file changes on its own branch, which also registers the
+  # workflow so it can be dispatched before it reaches main.
+  push:
+    branches: [ci/sim-tests]
+    paths: [.github/workflows/sims.yml]
 
 permissions:
   contents: read
 
 concurrency:
-  group: sims-${{ inputs.core }}-${{ inputs.ref }}
+  group: sims-${{ inputs.core || 'all' }}-${{ inputs.ref || 'feature/battery-saves' }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +43,7 @@ jobs:
       - name: Expand the core input
         id: pick
         env:
-          CORE: ${{ inputs.core }}
+          CORE: ${{ inputs.core || 'all' }}
         run: |
           case "$CORE" in
             all) cores='["nestang","snestang","gbatang","mdtang","smstang"]' ;;
@@ -52,27 +56,41 @@ jobs:
     name: ${{ matrix.core }}
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         core: ${{ fromJSON(needs.plan.outputs.cores) }}
     env:
       CORE: ${{ matrix.core }}
-      CORE_REF: ${{ inputs.ref }}
+      CORE_REF: ${{ inputs.ref || 'feature/battery-saves' }}
     steps:
+      - name: Check the ref exists
+        id: ref
+        run: |
+          if git ls-remote --exit-code "https://github.com/cassiostp/$CORE.git" "$CORE_REF" >/dev/null ||
+             git ls-remote --exit-code "https://github.com/cassiostp/$CORE.git" "refs/heads/$CORE_REF" >/dev/null; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          elif printf '%s' "$CORE_REF" | grep -Eq '^[0-9a-f]{7,40}$'; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::cassiostp/$CORE has no ref '$CORE_REF'; skipping"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check out core sources
+        if: steps.ref.outputs.present == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: cassiostp/${{ env.CORE }}
-          ref: ${{ inputs.ref }}
+          ref: ${{ env.CORE_REF }}
           path: core-src
           persist-credentials: false
 
       - name: Look for the save-RAM sims
         id: sims
         run: |
-          if [ -d core-src/sim/saveram ]; then
+          if [ "${{ steps.ref.outputs.present }}" = true ] && [ -d core-src/sim/saveram ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::$CORE has no sim/saveram at '$CORE_REF'; skipping"
