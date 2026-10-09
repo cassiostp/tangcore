@@ -44,5 +44,5 @@ J00000000 H00000000 c0  t00 #123
 How to read it:
 
 - **`J` or `H` changes while nobody is touching the pad:** the pad or its cable is faulty.
-- **`t` goes up on its own:** something pressed **Select + Right**, the in-game menu shortcut. That hides the menu and leaves only the TangCore title. Press **Select + Right** to bring the menu back.
+- **`t` goes up on its own:** something hid the menu, for example a spurious menu combination from a faulty pad.
 - **`#` stops counting:** the firmware has stopped responding. Please report it, with what you did just before.
