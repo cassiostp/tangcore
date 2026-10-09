@@ -27,22 +27,28 @@ If you use USB controllers,
 
 ## The menu misbehaves: no cursor, frozen, or only the TangCore title
 
-Turn on the diagnostic line under **Options → Diagnostics**, or put `diag=1` in `tangcore.cfg` on the SD card. A line like this then appears at the bottom of every menu:
+Turn on the diagnostic line under **Options → Diagnostics**, or put `diag=1` in `tangcore.cfg` on the SD card. A line like this then appears on the top row of every menu:
 
 ```
-J00000000 H00000000 c0  t00 #123
+J00000000 H00000000 a00 c0  #123
 ```
 
 | Part | Meaning |
 |---|---|
-| `J` | Buttons on the pads read by the FPGA: player 1, then player 2. |
-| `H` | Buttons on USB pads read by the MCU: player 1, then player 2. |
-| `c` | The core the FPGA is running. 0 is the menu. |
-| `t` | How many times the menu was hidden since power-on. |
-| `#` | A counter that keeps going while the menu is working. |
+| `J` | Buttons on the pads in the console's two USB-A ports: 4 hex digits per pad, player 1 then player 2. |
+| `H` | Buttons on the pads in the BL616 USB-C port: 4 hex digits per pad, player 1 then player 2. |
+| `a` | First digit: the action the firmware is about to take. Second digit: 1 while a button combination is held. |
+| `c` | The core the FPGA is running. 0 is the menu core. |
+| `#` | A counter that keeps changing while the menu is responsive. |
 
 How to read it:
 
 - **`J` or `H` changes while nobody is touching the pad:** the pad or its cable is faulty.
-- **`t` goes up on its own:** something hid the menu, for example a spurious menu combination from a faulty pad.
-- **`#` stops counting:** the firmware has stopped responding. Please report it, with what you did just before.
+- **The second `a` digit stays 1:** the firmware thinks a combination is held, for example from a stuck button.
+- **`#` stops counting:** the firmware has stopped responding. It restarts itself; see below.
+
+## The firmware stops responding
+
+If the firmware ever hangs, a hardware watchdog restarts it by itself within about 15-20 seconds.
+
+Pressing **MODE** also restarts everything, from any screen, including error message boxes. Message boxes close with **A**, **B** or **START**.

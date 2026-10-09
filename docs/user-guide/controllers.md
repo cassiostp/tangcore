@@ -21,7 +21,9 @@ My personal favorite is the 8BitDo wireless adapter paired with an 8BitDo Pro 2 
 
 ## Ports
 
-The two bottom USB-A ports are wired to the FPGA. The **left** one is player 1 and the **right** one is player 2. Most NES, SNES and Genesis games only respond to player 1, so plug a single pad into the left port. Game Boy Advance reads both ports as its one player.
+The two bottom USB-A ports are wired to the FPGA and support low-speed HID controllers only, such as simple USB SNES-style pads. The **left** one is player 1 and the **right** one is player 2. Most NES, SNES and Genesis games only respond to player 1, so plug a single pad into the left port. Game Boy Advance reads both ports as its one player.
+
+The bottom-left USB-C port is wired to the BL616 MCU. With a USB-C OTG adapter or a hub it works with full-speed USB controllers, including Xbox 360-style (XInput) wired controllers, up to 2 XInput pads.
 
 ## In-game controls
 
@@ -29,17 +31,30 @@ The two bottom USB-A ports are wired to the FPGA. The **left** one is player 1 a
 |---|---|
 | Open the game menu | Press **Select + Start + L** together. |
 | Back to the game | Press **Select + Start + L** again, or choose **Resume**. |
-| Quit the game | Hold **Select + Start + R** for 3 seconds, or choose **Quit game** in the game menu. |
+| Close the game | Hold **Select + Start + R** for 3 seconds (by default), or choose **Close game** in the game menu. |
 | Restart everything | Press **MODE** on the console. It's like a power cycle. |
 
-The game menu has **Resume**, **Quit game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
+The game menu has **Resume**, **Reset**, **Close game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
 
 The two button combinations can be changed under **Options** in the main menu:
 
-1. Select **Menu** or **Quit**.
+1. Select **Menu** or **Reset**.
 2. Hold the 3 buttons you want, all at once, for about a second, until "got it" appears.
 3. Select **Save**.
 
 A combination must be exactly 3 buttons and include **Select** or **Start**, so it can't go off by accident during play.
 
-Settings are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`.
+**Options** has these items:
+
+* **Menu** — the button combination that opens the game menu.
+* **Reset** — the button combination that resets the game. Keep holding it for **Hold to close** and the game closes.
+* **Reset combo** — ON/OFF, turns the Reset combination on or off.
+* **Hold to close** — how long the Reset combination must be held to close the game, from 2 to 5 seconds.
+* **Diagnostics** — ON/OFF, shows a diagnostic line on the top row of menus, see [troubleshooting](troubleshooting.md).
+* **Scanlines** — ON/OFF, off by default. Darkens one output line per line of the original picture, for a CRT look. Works on NES, SNES, MegaDrive/Genesis and Master System. Game Boy Advance has no scanlines; it's a handheld LCD. Needs the updated cores, the core .bin files from the same TangCore release; older cores ignore it.
+* **Pause in game menu** — ON/OFF, on by default. While any menu is shown over a running game (the game menu, the main menu or Options), the game is paused and silent. It continues when you choose **Resume**. With it off, the game keeps running behind the menu. Either way the game never receives button presses while a menu is shown. Needs the updated cores; PC/XT keeps running.
+* **Flash mode...** — restarts the console ready to be flashed on the BL616 USB-C port.
+* **Save** — applies the changes and stores them.
+* **<< Back** — leaves without saving.
+
+The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `scanlines=1` or `pause_in_menu=0`.

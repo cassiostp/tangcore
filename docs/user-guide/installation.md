@@ -58,11 +58,13 @@ NESTang/SNESTang   |
 ├── 📁 snes/         # .smc/.sfc files
 ├── 📁 gba/
 │    └── 🗎 gba_bios.bin  # GBA BIOS
-├── 📁 genesis/      # .bin/.md files
-├── 📁 sms/          # .sms files
+├── 📁 genesis/      # .bin/.md/.gen files
+├── 📁 sms/          # .sms/.sg files
 └── 📁 pc/           # .img floppy images
 │    └── 🗎 bios.bin  # PC 5160 BIOS
 ```
+
+The ROM folders list only the files the core can load: NES `.nes`; SNES `.smc` `.sfc`; Game Boy Advance `.gba`; MegaDrive/Genesis `.bin` `.md` `.gen`; Master System `.sms` `.sg`; PC/XT floppy images `.img`. The `gba_bios.bin` in the GBA folder is hidden; it's loaded automatically. Folders are always listed. The Cores folder lists everything.
 
 ### Hardware Assembly
 1. Connect components as shown (DS2 controller setup shown):
