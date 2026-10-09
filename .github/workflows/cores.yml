@@ -202,6 +202,7 @@ jobs:
           bin=$(ls core-src/impl/pnr/*.bin 2>/dev/null | head -n1)
           # rename to the file name TangCore's firmware looks for on the SD card
           [ -n "$bin" ] && cp "$bin" "dist/$CORE.bin"
+          cp core-src/impl/pnr/*.tr.html core-src/impl/pnr/*.rpt.txt dist/ 2>/dev/null
           true
 
       - name: Upload bitstream and log
