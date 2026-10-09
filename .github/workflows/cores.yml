@@ -27,17 +27,12 @@ on:
         default: console138k
         required: true
 
-  # TEMPORARY while this workflow is under development: every push to
-  # ci/core-builds builds nestang at its default branch (inputs fall back to
-  # their defaults). The parent will remove this trigger once stable.
-  push:
-    branches: [ci/core-builds]
 
 permissions:
   contents: read
 
 concurrency:
-  group: cores-${{ github.ref }}-${{ inputs.core || 'nestang' }}-${{ inputs.board || 'console138k' }}
+  group: cores-${{ inputs.core }}-${{ inputs.ref }}-${{ inputs.board }}
   cancel-in-progress: true
 
 env:
@@ -45,12 +40,12 @@ env:
 
 jobs:
   build:
-    name: ${{ inputs.core || 'nestang' }} / ${{ inputs.board || 'console138k' }}
+    name: ${{ inputs.core }} / ${{ inputs.board }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
-      CORE: ${{ inputs.core || 'nestang' }}
-      BOARD: ${{ inputs.board || 'console138k' }}
+      CORE: ${{ inputs.core }}
+      BOARD: ${{ inputs.board }}
       CORE_REF: ${{ inputs.ref }}
     steps:
       - name: Free disk space
