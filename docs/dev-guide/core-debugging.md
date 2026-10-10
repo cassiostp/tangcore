@@ -77,7 +77,7 @@ Commands from BL616 to FPGA:
 |-----|-----|
 |0x01|Get core ID (response 0x01). Used to identify the core and check that it's ready.|
 |0x02|Get core config string (response 0x02)|
-|0x03 x[31:0]|Set core config status|
+|0x03 x[31:0]|Set core config status. Bits 15:0 are core specific; bits 16 and up are shared (scanlines, pause in menu, pad mute), see `CORE_CFG_*` in the firmware's `utils/utils.h`.|
 |0x04 x[7:0] y[7:0]|Move overlay text cursor to (x, y)|
 |0x05 <string>|Display string from cursor (length from the frame header)|
 |0x06 loading_state[7:0]|Set loading state (0: core running, non-0: loading)|
@@ -88,6 +88,9 @@ Commands from BL616 to FPGA:
 |0x0b addr[15:0] data[15:0]|Write to the disk management interface|
 |0x0c <scancode>|PS/2 scancode (length from the frame header)|
 |0x0d <string>|Debug print; cores ignore it|
+|0x11 blk[15:0] <data_512>|Write one 512-byte block of the game's save RAM (restore at game load)|
+|0x12 blk[15:0]|Read one block of save RAM (answered with response 0x0a)|
+|0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
 
 Responses from FPGA to BL616:
 
@@ -98,5 +101,7 @@ Responses from FPGA to BL616:
 |0x03 joy1[15:0] joy2[15:0]|DS2/SNES joypad state. Sent when it changes, at most every 20 ms.|
 |0x04 lba[15:0] <data_512>|Write a sector to disk|
 |0x05 lba[15:0]|Read a sector from disk (answered with command 0x0a)|
+|0x0a blk[15:0] <data_512>|A block of save RAM, the answer to command 0x12|
+|0x0b <pad>|The game wrote save RAM since the last read|
 
 
