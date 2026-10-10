@@ -38,7 +38,7 @@ The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< M
 
 ## Video
 
-**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...** and, on Game Boy Advance and Game Gear, **LCD grid...**. Changes reach the game at once and are stored when you leave a screen. Each screen has a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
+**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Smoothing**. Changes reach the game at once and are stored when you leave a screen. Each screen has a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
 
 The settings apply to every core. They need the core .bin files from the same TangCore release; older cores ignore them. PC/XT has none of them.
 
@@ -66,6 +66,16 @@ Imitates the pattern of red, green and blue stripes or dots on a CRT screen.
 * **Mask** — **Off** (the default), **Grille** (vertical stripes), **Slot** (stripes broken into slots) or **Dot**.
 * **Strength** — 1 to 4. A stronger mask makes the picture darker; raise **Brightness** under **Color...** to make up for it.
 * **Preview** — **Left/Right** changes the strength, **Up/Down** the mask.
+
+### Smoothing
+
+**Smoothing** in the Video menu changes how the game's pixels are stretched to the TV:
+
+* **Off** (the default) — every game pixel becomes a block of TV pixels. Most games are stretched by an uneven amount, so some pixels end up one TV pixel wider or taller than others.
+* **Sharp** — blends only the TV pixels that fall on the edge between two game pixels, so every game pixel looks the same size and the picture stays crisp.
+* **Soft** — blends neighbouring game pixels across their whole width, for a smoother, slightly blurry picture.
+
+Choosing the item steps through Off, Sharp and Soft; the change is visible as soon as you close the menu.
 
 ### LCD grid
 
@@ -97,4 +107,4 @@ A combination must be exactly 3 buttons and include **Select** or **Start**, so 
 * **Save** — applies the changes and stores them.
 * **<< Back** — leaves without saving.
 
-The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scanline_full=0`, `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0` and `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4).
+The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scanline_full=0`, `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0`, `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4) and `smoothing=0` (0 off, 1 sharp, 2 soft).

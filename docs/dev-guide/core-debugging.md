@@ -90,7 +90,7 @@ Commands from BL616 to FPGA:
 |0x0d <string>|Debug print; cores ignore it|
 |0x11 blk[15:0] <data_512>|Write one 512-byte block of the game's save RAM (restore at game load)|
 |0x12 blk[15:0]|Read one block of save RAM (answered with response 0x0a)|
-|0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
+|0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid, smoothing. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
 
 Responses from FPGA to BL616:
 
