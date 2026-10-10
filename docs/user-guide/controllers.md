@@ -34,7 +34,21 @@ The BL616 USB-C port (the one used for flashing, not the power port) is wired to
 | Close the game | Hold **Select + Start + R** for 3 seconds (by default), or choose **Close game** in the game menu. |
 | Restart everything | Press **MODE** on the console. It's like a power cycle. |
 
-The game menu has **Resume**, **Reset**, **Close game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
+The game menu has **Resume**, **Reset**, **Scanlines...**, **Close game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
+
+## Scanlines
+
+**Scanlines...** in the game menu darkens thin lines between the lines of the game's picture, for a CRT look. Changes reach the game at once and are stored when you leave the screen.
+
+* **Scanlines** — ON/OFF, off by default.
+* **Darkness** — 25 %, 50 %, 75 % (the default) or 100 % (black).
+* **Lines** — Thin or Thick.
+* **Scale** — **Integer** makes every line of the game the same height on the TV, so the scanlines are evenly spaced; the picture gets a little smaller, with a border above and below. **Full** keeps the full-size picture and puts the lines at a fixed spacing on the TV; on Game Boy Advance and Master System they then don't line up with the game's lines.
+* **Preview** — hides the menu over the game, so you can see the result. **Left/Right** changes the darkness, **Up/Down** the line thickness, **Start** the scale and **Select** turns them on or off. **A** or **B** goes back. The game stays paused, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
+
+The settings apply to every core. Scanlines need the core .bin files from the same TangCore release; older cores ignore them. PC/XT has no scanlines.
+
+## Options
 
 The two button combinations can be changed under **Options** in the main menu:
 
@@ -51,10 +65,9 @@ A combination must be exactly 3 buttons and include **Select** or **Start**, so 
 * **Reset combo** — ON/OFF, turns the Reset combination on or off.
 * **Hold to close** — how long the Reset combination must be held to close the game, from 2 to 5 seconds.
 * **Diagnostics** — ON/OFF, shows a diagnostic line on the top row of menus, see [troubleshooting](troubleshooting.md).
-* **Scanlines** — ON/OFF, off by default. Darkens one output line per line of the original picture, for a CRT look. Works on NES, SNES, MegaDrive/Genesis and Master System. Game Boy Advance has no scanlines; it's a handheld LCD. Needs the updated cores, the core .bin files from the same TangCore release; older cores ignore it.
 * **Pause in game menu** — ON/OFF, on by default. While any menu is shown over a running game (the game menu, the main menu or Options), the game is paused and silent. It continues when you choose **Resume**. With it off, the game keeps running behind the menu. Either way the game never receives button presses while a menu is shown. Needs the updated cores; PC/XT keeps running.
 * **Flash mode...** — restarts the console ready to be flashed on the BL616 USB-C port.
 * **Save** — applies the changes and stores them.
 * **<< Back** — leaves without saving.
 
-The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `scanlines=1` or `pause_in_menu=0`.
+The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the scanline settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0` and `scanline_full=0`.
