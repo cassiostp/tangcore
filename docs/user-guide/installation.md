@@ -58,11 +58,17 @@ NESTang/SNESTang   |
 ├── 📁 snes/         # .smc/.sfc files
 ├── 📁 gba/
 │    └── 🗎 gba_bios.bin  # GBA BIOS
-├── 📁 genesis/      # .bin/.md files
-├── 📁 sms/          # .sms files
+├── 📁 genesis/      # .bin/.md/.gen files
+├── 📁 sms/          # .sms/.sg/.gg files
 └── 📁 pc/           # .img floppy images
 │    └── 🗎 bios.bin  # PC 5160 BIOS
 ```
+
+The ROM folders list only the files the core can load: NES `.nes`; SNES `.smc` `.sfc`; Game Boy Advance `.gba`; MegaDrive/Genesis `.bin` `.md` `.gen`; Master System `.sms` `.sg` and Game Gear `.gg`; PC/XT floppy images `.img`. The `gba_bios.bin` in the GBA folder is hidden; it's loaded automatically. Folders are always listed. The Cores folder lists everything.
+
+### Game saves
+
+Games with battery-backed saves keep them on the drive: Master System and Game Gear games (such as Phantasy Star) in `saves/sms/<game>.sav`, SNES games (such as Super Mario World) in `saves/snes/<game>.sav`, NES games (such as The Legend of Zelda) in `saves/nes/<game>.sav`, MegaDrive/Genesis games (such as Phantasy Star II) in `saves/genesis/<game>.sav`, Game Boy Advance games (such as Pokémon Emerald) in `saves/gba/<game>.sav`. The folders are created when needed, and games without battery-backed RAM get no file. A save is written about 2 seconds after the game saves, and also when you open a menu, load another game, reset or close the game, so it survives power-off. While a SNES save is written the game pauses briefly (a few hundredths of a second for most games, about a second and a half for the largest 128 KB saves). The files hold the raw save RAM, like MiSTer's cores (a MegaDrive/Genesis file is the start of MiSTer's 64 KB image). The GBA save chip is detected from the ROM: SRAM/FRAM games get a 32 KB file, 512 Kbit Flash games 64 KB, 1 Mbit Flash games 128 KB, EEPROM games 8 KB, and games without a save chip get no file. A GBA file is the raw save-chip image, in the same layout as MiSTer's GBA core, so save files can be copied between the two.
 
 ### Hardware Assembly
 1. Connect components as shown (DS2 controller setup shown):

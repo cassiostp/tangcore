@@ -14,7 +14,7 @@ In the PC/XT core, press **F12** to switch the OSD on and off.
 
 ## Using floppy images
 
-Press **F12** (or the menu combination on a pad) to open the game menu. **Floppy drives** there lets you load floppy images or reset the machine.
+Press **F12** (or the menu combination on a pad) to open the game menu. **Floppy drives** there lets you load floppy images or reset the machine. PC/XT keeps running while a menu is shown over it.
 
 ![](pcxt_osd.jpg)
 
