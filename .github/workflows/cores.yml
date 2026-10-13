@@ -224,6 +224,9 @@ jobs:
           bin=$(ls core-src/impl/pnr/*.bin 2>/dev/null | head -n1)
           # rename to the file name TangCore's firmware looks for on the SD card
           [ -n "$bin" ] && cp "$bin" "dist/$CORE.bin"
+          # the Gowin .fs next to it, for openFPGALoader over JTAG (tangcore#6)
+          fs=$(ls core-src/impl/pnr/*.fs 2>/dev/null | head -n1)
+          [ -n "$fs" ] && cp "$fs" "dist/$CORE.fs"
           # reports, for context when a build fails
           cp core-src/impl/pnr/*.rpt.txt core-src/impl/pnr/*.tr \
              core-src/impl/pnr/*_tr_content.html core-src/impl/pnr/*.tr.html dist/ 2>/dev/null
