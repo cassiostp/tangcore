@@ -12,7 +12,7 @@ on:
       core:
         description: Core to build
         type: choice
-        options: [nestang, snestang, gbatang, mdtang, smstang]
+        options: [nestang, snestang, gbatang, mdtang, smstang, monitorcore]
         default: nestang
         required: true
       ref:
