@@ -21,25 +21,28 @@ Check controller connection. Dualshock controller support is most stable:
 
 If you use USB controllers,
 
-* Only the Sipeed-provided USB gamepads can be used with the on-board USB-A port. If it is not recognized, replug the pad.
+* Only the Sipeed-provided USB gamepads can be used with the on-board USB-A port. If a pad stops answering (a lost packet, an FPGA reload, a core load), the FPGA resets the port and sets the pad up again by itself in about 0.5 s; unplugging is not needed.
 * Other types of USB gamepads needs a USB hub to work. Please follow instructions on the [controllers page](controllers.md).
 
 
 ## The menu misbehaves: no cursor, frozen, or only the TangCore title
 
-Turn on the diagnostic line under **Options → Diagnostics**, or put `diag=1` in `tangcore.cfg` on the SD card. A line like this then appears on the top row of every menu:
+Turn on the diagnostic line under **Options → Diagnostics**, or put `diag=1` in `tangcore.cfg` on the SD card. Two lines then appear on the top rows of every menu:
 
 ```
-J00000000 H00000000 a00 c0  #123
+J000000 H000000 a00 c0  s  0 #07
+SV w12 s3 f0 n0 b0 -C
 ```
 
 | Part | Meaning |
 |---|---|
-| `J` | Buttons on the pads in the console's two USB-A ports: 4 hex digits per pad, player 1 then player 2. |
-| `H` | Buttons on the pads in the BL616 USB-C port: 4 hex digits per pad, player 1 then player 2. |
+| `J` | Buttons from the FPGA for players 1 and 2, 3 hex digits (12 bits) each. Pads in the console's two USB-A ports are read by the FPGA and appear here. |
+| `H` | Pads read by the BL616 MCU, 3 hex digits (12 bits) per player. |
 | `a` | First digit: the action the firmware is about to take. Second digit: 1 while a button combination is held. |
 | `c` | The core the FPGA is running. 0 is the menu core. |
-| `#` | A counter that keeps changing while the menu is responsive. |
+| `s` | Longest silent gap seen from the FPGA, in ms, capped at 999. |
+| `#` | A counter that changes 4 times a second. It stops if the firmware's main loop stops. |
+| `SV` | Battery-save counters: `w` saves written, `s` saves found already current, `f` failed, `n` save blocks the FPGA never answered, `b` save blocks cut short. `O` shows the UART receive FIFO overflowed at least once (`-` if not). `C` shows the game announced a save write (`-` if not). |
 
 How to read it:
 
@@ -51,4 +54,8 @@ How to read it:
 
 If the firmware ever hangs, a hardware watchdog restarts it by itself within about 15-20 seconds.
 
-Pressing **MODE** also restarts everything, from any screen, including error message boxes. Message boxes close with **A**, **B** or **START**.
+Pressing **MODE** reloads the FPGA from its flash (the menu core) and restarts the firmware; a short press is enough. In a game the firmware notices at once, when the reloaded FPGA answers as the menu core; in menus it takes about 200 ms. It works from any screen, including error message boxes. Message boxes close with **A**, **B** or **START**.
+
+## An SNES game does not work
+
+The supported SNES extension chips are DSP-1/2/3/4, S-RTC and OBC-1. SA-1 cartridges are not supported (Kirby Super Star, Super Mario RPG and Kirby's Dream Land 3, among others), and neither is Super FX (GSU).
