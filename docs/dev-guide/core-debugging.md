@@ -12,7 +12,7 @@ This way we can use Gowin Analyzer Oscilloscope to debug our gateware as normal.
 
 ## Monitor MCU-FPGA communcation
 
-The BL616 MCU acts as the master in UART communication. Communication happens in commands and responses. If you need to observe the communication to help debugging your core, you can do that with the script `firmware-bl616/scripts/liveuart.py`. It will try to decode and dump the communication. There are two streams - BL616 to FPGA, and FPGA to BL616. So it would be better if you use a 2-UART USB-serial adapter, and connect the wires like this:
+The BL616 MCU acts as the master in UART communication. Communication happens in commands and responses. If you only need the firmware's own log, use the [USB debug console](../user-guide/debug-console.md) instead: no adapter is needed, and its `link` and `sniff` commands show the live traffic counters. If you need to observe the communication to help debugging your core, you can do that with the script `firmware-bl616/scripts/liveuart.py`. It will try to decode and dump the communication. There are two streams - BL616 to FPGA, and FPGA to BL616. So it would be better if you use a 2-UART USB-serial adapter, and connect the wires like this:
 
 ![](tangcore_uart.drawio.svg)
 
@@ -91,6 +91,7 @@ Commands from BL616 to FPGA:
 |0x11 blk[15:0] <data_512>|Write one 512-byte block of the game's save RAM (restore at game load)|
 |0x12 blk[15:0]|Read one block of save RAM (answered with response 0x0a)|
 |0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid, smoothing. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
+|0x14 unix[31:0] bcd[6:0] solar flags|Wall-clock time, 13 payload bytes: unix seconds (big-endian), BCD year month day weekday hour minute second (year from 2000), solar level 0-100 %, flags bit0 = cart RTC present (GBA), bit1 = solar present (GBA), bit2 = clock was user-set. Sent at game load, after reset/resume, on clock/solar change, and every 10 s in game; cores count seconds themselves between frames. Old bitstreams ignore it.|
 
 Responses from FPGA to BL616:
 
