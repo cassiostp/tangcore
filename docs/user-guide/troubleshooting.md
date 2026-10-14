@@ -58,4 +58,14 @@ Pressing **MODE** reloads the FPGA from its flash (the menu core) and restarts t
 
 ## An SNES game does not work
 
-The supported SNES extension chips are DSP-1/2/3/4, S-RTC and OBC-1. SA-1 cartridges are not supported (Kirby Super Star, Super Mario RPG and Kirby's Dream Land 3, among others), and neither is Super FX (GSU).
+The supported SNES extension chips are DSP-1/2/3/4, S-RTC, OBC-1 and CX4 (Mega Man X2 and X3). Daikaijuu Monogatari II uses the S-RTC clock; it reads the console clock, so set it under **Options → Date & time**. SA-1 cartridges are not supported (Kirby Super Star, Super Mario RPG and Kirby's Dream Land 3, among others), and neither is Super FX (GSU).
+
+Cartridges with SA-1, S-DD1 (Star Ocean, Street Fighter Alpha 2), SPC7110, ST018 or BS-X show a "<chip> cartridge not supported yet" message and return to the browser. Dismiss it with **A**, **B** or **START**.
+
+## An NES game does not work
+
+The Konami VRC family (VRC1, VRC2/4, VRC3, VRC6, VRC7) and MMC5 are supported, including VRC6 and VRC7 expansion audio. This covers Castlevania III and Just Breed (MMC5), Contra (VRC2/4), Akumajou Densetsu (VRC6) and Lagrange Point (VRC7), among others.
+
+## A Genesis game does not work
+
+ROMs up to 8 MB are supported, including Super Street Fighter II at 5 MB. Larger ROMs are refused. Games with serial EEPROM saves (NBA Jam TE, Wonder Boy in Monster World, Micro Machines 2) keep them in `saves/genesis/<game>.sav` like any battery-backed game.
