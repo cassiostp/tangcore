@@ -34,7 +34,7 @@ The BL616 USB-C port (the one used for flashing, not the power port) is wired to
 | Close the game | Hold **Select + Start + R** for 3 seconds (by default), or choose **Close game** in the game menu. |
 | Restart everything | Press **MODE** on the console. It reloads the FPGA from its flash (the menu core) and restarts the firmware; a short press is enough. |
 
-The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
+The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. Games with a sunlight sensor (Boktai 1/2/3) also have **Solar**. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
 
 ## Video
 
@@ -103,8 +103,17 @@ A combination must be exactly 3 buttons and include **Select** or **Start**, so 
 * **Hold to close** — how long the Reset combination must be held to close the game, from 2 to 5 seconds.
 * **Diagnostics** — ON/OFF, shows a diagnostic line on the top row of menus, see [troubleshooting](troubleshooting.md).
 * **Pause in game menu** — ON/OFF, on by default. While any menu is shown over a running game (the game menu, the main menu or Options), the game is paused and silent. It continues when you choose **Resume**. With it off, the game keeps running behind the menu. Either way the game never receives button presses while a menu is shown. Needs the updated cores; PC/XT keeps running.
+* **Date & time** — the console clock, for example `2026-10-13 12:34`. It opens a field editor (see below). Games with a real-time clock read this clock.
 * **Flash mode...** — restarts the console ready to be flashed on the BL616 USB-C port.
+* **USB debug console** — ON/OFF, off by default. Streams the firmware log to a PC and takes commands, see the [USB debug console](debug-console.md) page.
+* **Save debug log** — writes the log kept in RAM to `tangcore/debuglog.txt`.
 * **Save** — applies the changes and stores them.
 * **<< Back** — leaves without saving.
 
-The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scanline_full=0`, `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0`, `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4) and `smoothing=0` (0 off, 1 sharp, 2 soft).
+### Date & time
+
+The console has no battery-backed clock, so the clock is kept in software. It runs while the console is on, including across a MODE press, and stands still while the console is off. It is stored whenever settings are saved and every few minutes while idle in the menu. If the clock was never set it runs from 2000-01-01, so time-based events still advance within a session.
+
+The editor shows Year, Month, Day, Hour and Minute. **Up/Down** picks the field, **Left/Right** changes it, **A** saves (seconds restart at 0), **B** cancels.
+
+The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scanline_full=0`, `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0`, `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4), `smoothing=0` (0 off, 1 sharp, 2 soft) and `solar_pct=50` (Boktai sunlight, 0 to 100).
