@@ -31,6 +31,6 @@ If the terminal is closed the firmware drops output instead of blocking. Nothing
 
 Stop it: **Options → USB debug console → OFF**, then unplug the PC. The USB host (pads and drive) starts again. If BL616-port pads do not come back, power-cycle with the PC unplugged. The console is never remembered across power cycles; it is off after every boot.
 
-Logs without a PC: the log is kept in RAM across MODE and watchdog resets. After such a reset the previous boot's log is written to `tangcore/lastlog.txt` on the card. The last three are kept (`lastlog.txt`, `lastlog1.txt`, `lastlog2.txt`). **Options → Save debug log** writes the current log to `tangcore/debuglog.txt` at any time.
+Logs without a PC: after a MODE press or a watchdog reset, the firmware writes the previous boot's log to `tangcore/lastlog.txt` on the card, if its copy in RAM came through the restart intact (it carries a checksum; a damaged copy is skipped). The last three are kept (`lastlog.txt`, `lastlog1.txt`, `lastlog2.txt`). **Options → Save debug log** writes the current log to `tangcore/debuglog.txt` at any time.
 
 Watch out: if the only pad is on the BL616 port, switching the console on leaves no working pad to switch it off again. Use a bottom USB-A pad, or type `reboot` in the console, unplug the PC and power-cycle.
