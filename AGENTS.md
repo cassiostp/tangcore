@@ -55,6 +55,7 @@ gh workflow run cores.yml -R cassiostp/tangcore --ref ci/core-builds \
 
 - The build fails on any setup or hold violation.
 - The artifact has `<core>-<board>/<core>.bin` and the timing and utilisation reports.
+- `-f variant=hz120` builds the 480p 120 Hz bitstream instead, saved as `<core>_120hz.bin` in the `<core>-<board>-hz120` artifact.
 - Runs for the same core, ref and board cancel each other: wait for one to finish before starting the same build again.
 
 **Save simulations for all cores:**

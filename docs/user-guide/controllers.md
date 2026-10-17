@@ -38,9 +38,9 @@ The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< M
 
 ## Video
 
-The HDMI output runs at each console's own refresh rate: Game Boy Advance 59.75 Hz, MegaDrive/Genesis and Master System 59.93 Hz. NES, SNES and the menu itself run at standard 60.00 Hz. There is no rate selector.
+The HDMI output runs at each console's own refresh rate: Game Boy Advance 59.75 Hz, MegaDrive/Genesis and Master System 59.93 Hz. NES, SNES and the menu itself run at standard 60.00 Hz. **Display** under **Options** in the main menu switches the games to 120 Hz (480p): the picture then runs at twice the console's own rate, from a separate `<core>_120hz.bin` next to the 60 Hz `<core>.bin` in `cores/console138k` (see [installation](installation.md)). The monitor must accept 480p at about 120 Hz. The 120 Hz builds run on the Console 138K.
 
-**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Scale**. Changes reach the game at once and are stored when you leave a screen. Scanlines, Color, CRT mask and LCD grid each have a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. **A** on **Scale** switches it between Full and Integer. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
+**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Scale**. While a 120 Hz build runs it also has **BFI**. Changes reach the game at once and are stored when you leave a screen. Scanlines, Color, CRT mask and LCD grid each have a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. **A** on **Scale** switches it between Full and Integer. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
 
 The settings apply to every core. They need the core .bin files from the same TangCore release; older cores ignore them. PC/XT has none of them.
 
@@ -83,6 +83,19 @@ On Game Boy Advance and Game Gear, draws the thin gaps between the pixels of a h
 * **Strength** — 1 to 4.
 * **Preview** — **Left/Right** changes the strength, **Up/Down** turns the grid on or off.
 
+### BFI
+
+**BFI** in the Video menu is black-frame insertion, shown only while a 120 Hz build runs. Each game frame is shown on two screen refreshes; BFI darkens the second one, the way a CRT's phosphor fades between passes. It applies at once and is remembered.
+
+* **Off** — both refreshes are lit: the normal picture. On a high-refresh LCD, 120 Hz alone is already worth it: the faster refresh speeds up the panel's overdrive, so there is less smearing even with BFI off.
+* **Black** (the default) — every other refresh is black. Motion looks sharpest, but the picture is dimmer and flickers at 60 Hz.
+* **Dim** — every other refresh is at half brightness. Less flicker than Black, less sharp.
+* **Rolling** — instead of flashing the whole screen, a soft band of brightness sweeps down the screen about once a second. Same average brightness as Black, without the full-screen flash. Only the NES core does this; the other cores show Black instead.
+
+The game menu is never blanked: it stays lit on every refresh, in every mode.
+
+At 120 Hz the game picture stays centred: NES and SNES show 640×448, MegaDrive/Genesis an integer 2× picture, Master System 512×384 (2×) and Game Gear 480×432 (3×), Game Boy Advance an integer 3× picture filling the 720×480 frame.
+
 ## Options
 
 The two button combinations can be changed under **Options** in the main menu:
@@ -100,6 +113,7 @@ A combination must be exactly 3 buttons and include **Select** or **Start**, so 
 * **Reset combo** — ON/OFF, turns the Reset combination on or off.
 * **Hold to close** — how long the Reset combination must be held to close the game, from 2 to 5 seconds.
 * **Diagnostics** — ON/OFF, shows a diagnostic line on the top row of menus, see [troubleshooting](troubleshooting.md).
+* **Display** — **60 Hz (720p)** or **120 Hz (480p)**, 60 Hz by default. A game started with 120 Hz loads the `<core>_120hz.bin` build when one is on the card, and the 60 Hz build with a one-line notice when there isn't. It takes effect on the next load.
 * **Pause in game menu** — ON/OFF, on by default. While any menu is shown over a running game (the game menu, the main menu or Options), the game is paused and silent. It continues when you choose **Resume**. With it off, the game keeps running behind the menu. Either way the game never receives button presses while a menu is shown. Game Boy Advance, MegaDrive/Genesis and Master System pause; NES, SNES and PC/XT keep running.
 * **Date & time** — the console clock, for example `2026-10-13 12:34`. It opens a field editor (see below). Games with a real-time clock read this clock.
 * **Flash mode...** — restarts the console ready to be flashed on the BL616 USB-C port.
@@ -108,11 +122,13 @@ A combination must be exactly 3 buttons and include **Select** or **Start**, so 
 * **Save** — applies the changes and stores them.
 * **<< Back** — leaves without saving.
 
+**Options** has 13 items in a 12-row window: scroll with **Up/Down**, and a `^` at the top edge means there is more above, `v` at the bottom more below. **Up** on the first item wraps to the last, **Down** on the last wraps to the first. Each press moves one step; holding the button does not repeat. The same wrap-around works in every menu.
+
 ### Date & time
 
 The console has no battery-backed clock, so the clock is kept in software. It runs while the console is on, including across a MODE press, and stands still while the console is off. It is stored whenever settings are saved and every few minutes while idle in the menu. If the clock was never set it runs from 2000-01-01, so time-based events still advance within a session.
 
-The editor shows Year, Month, Day, Hour and Minute. **Up/Down** picks the field, **Left/Right** changes it, **A** saves (seconds restart at 0), **B** cancels.
+The editor shows Year, Month, Day, Hour and Minute. **Up/Down** picks the field, **Left/Right** changes it, **A** saves (seconds restart at 0), **B** cancels. The field wraps around: **Up** on Year goes to Minute, **Down** on Minute back to Year.
 
-The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scale=full` (full or integer), `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0`, `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4) and `solar_pct=50` (Boktai sunlight, 0 to 100).
+The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scale=full` (full or integer), `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0`, `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4), `display=120` (60 for the 60 Hz build, 120 for the 120 Hz build), `bfi=black` (off, black, dim or rolling; only the 120 Hz build reads it) and `solar_pct=50` (Boktai sunlight, 0 to 100).
 

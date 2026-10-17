@@ -19,6 +19,16 @@ If you open `iosys_bl616.v`, you will see that it provides a few useful pins,
 
 The [hdl-util/HDMI](https://github.com/hdl-util/hdmi) interface should run in 720p mode. Please refer to nestang_top.v and the HDMI module author's documentation for how to use it.
 
+The 120 Hz builds run the same interface in 480p mode (VIC 48, 54 MHz pixel clock), at twice the console's rate: each game frame is shown on two HDMI refreshes, halt-locked to half the HDMI rate, so the game never runs slower than the console.
+
+| Core | Line | HDMI rate | Game rate |
+|---|---|---|---|
+| NES / SNES | 855×525 | 120.30 Hz | 60.15 Hz |
+| MegaDrive/Genesis / Master System | 858×525 | 119.88 Hz | 59.94 Hz |
+| Game Boy Advance | 861×525 | 119.46 Hz | 59.73 Hz |
+
+CI builds the 120 Hz bitstream with `-f variant=hz120`, which saves `<core>_120hz.bin` in the `<core>-<board>-hz120` artifact; the firmware loads that file when **Display** is 120 Hz. Only the Console 138K builds are usable: the 60K boards cannot lock these rates.
+
 Please [file an issue](https://github.com/nand2mario/tangcore/issues) if you met issues in building your core.
 
 ## Generating core logo

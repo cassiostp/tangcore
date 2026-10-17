@@ -64,7 +64,9 @@ NESTang/SNESTang   |
 │    └── 🗎 bios.bin  # PC 5160 BIOS
 ```
 
-The ROM folders list only the files the core can load: NES `.nes`; SNES `.smc` `.sfc`; Game Boy Advance `.gba`; MegaDrive/Genesis `.bin` `.md` `.gen`; Master System `.sms` `.sg` and Game Gear `.gg`; PC/XT floppy images `.img`. The `gba_bios.bin` in the GBA folder is hidden; it's loaded automatically. Folders are always listed. The Cores folder lists everything.
+The ROM folders list only the files the core can load: NES `.nes`; SNES `.smc` `.sfc`; Game Boy Advance `.gba`; MegaDrive/Genesis `.bin` `.md` `.gen`; Master System `.sms` `.sg` and Game Gear `.gg`; PC/XT floppy images `.img`. The `gba_bios.bin` in the GBA folder is hidden; it's loaded automatically. Folders are always listed. The Cores folder lists everything. Long lists show 21 entries at a time: `^ more` / `more v` on the last row means there are more pages above or below, **Up** past the top and **Down** past the bottom turn the page (wrapping from the first page to the last and back), and **Left/Right** jumps a whole page.
+
+The 120 Hz builds live next to the 60 Hz builds: `cores/console138k/<core>.bin` with `cores/console138k/<core>_120hz.bin` beside it (for example `snestang.bin` and `snestang_120hz.bin`). They run on the Console 138K and need a monitor that accepts 480p at about 120 Hz. With **Display** set to 120 Hz under **Options**, starting a game loads the 120 Hz build; if its file is missing the menu says `No 120 Hz core, using 60 Hz` and loads the 60 Hz build instead. Picking a file in the Cores browser loads exactly that file.
 
 ### Game saves
 

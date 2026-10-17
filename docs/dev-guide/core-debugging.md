@@ -90,10 +90,13 @@ Commands from BL616 to FPGA:
 |0x0d <string>|Debug print; cores ignore it|
 |0x11 blk[15:0] <data_512>|Write one 512-byte block of the game's save RAM (restore at game load)|
 |0x12 blk[15:0]|Read one block of save RAM (answered with response 0x0a)|
-|0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid. Bits 19:18 are unused. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
+|0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid. Bits 19:18 are unused. Bits 21:20 select black-frame insertion on the 120 Hz builds: 0 off, 1 black, 2 dim (half brightness), 3 rolling scan (NES only; the other cores show black). The game menu stays lit on every refresh. The 60 Hz builds ignore the BFI bits. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
 |0x14 unix[31:0] bcd[6:0] solar flags|Wall-clock time, 13 payload bytes: unix seconds (big-endian), BCD year month day weekday hour minute second (year from 2000), solar level 0-100 %, flags bit0 = cart RTC present (GBA), bit1 = solar present (GBA), bit2 = clock was user-set. Sent at game load, after reset/resume, on clock/solar change, and every 10 s in game; cores count seconds themselves between frames. Old bitstreams ignore it.|
 |0x15 code[7:0]|Switch the link baud for what follows (GBA fast loading only): 0 = 2 Mbaud, the power-on rate, 1 = 4M, 2 = 5M, 3 = 8M. Answered at the old rate with response 0x0C; both ends switch once the answer is out. A core without fast loading stays silent and the load proceeds at 2M.|
 |0x16|Ask for the load check values (GBA fast loading only; answered with response 0x0D)|
+|0x17|Link resync: sent after a second of FPGA silence with a game loaded. Both ends drop the in-flight frame and return to idle; a core without this command sees an unknown length-1 command and ignores it, while the firmware's own parser reset still runs.|
+
+A frame always ends on its declared length (`len` counts the command byte plus the payload); lengths outside 1..1024 are rejected.
 
 Responses from FPGA to BL616:
 

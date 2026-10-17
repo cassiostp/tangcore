@@ -50,6 +50,8 @@ How to read it:
 - **The second `a` digit stays 1:** the firmware thinks a combination is held, for example from a stuck button.
 - **`#` stops counting:** the firmware has stopped responding. It restarts itself; see below.
 
+If a menu over a running game stops answering for a second, wait: after a second of silence from the FPGA the firmware re-syncs the link by itself and the menu comes back (a `link: ... resync` line in the [debug log](debug-console.md)).
+
 ## The firmware stops responding
 
 If the firmware ever hangs, a hardware watchdog restarts it by itself within about 15-20 seconds.
