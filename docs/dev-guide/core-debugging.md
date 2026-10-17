@@ -12,7 +12,7 @@ This way we can use Gowin Analyzer Oscilloscope to debug our gateware as normal.
 
 ## Monitor MCU-FPGA communcation
 
-The BL616 MCU acts as the master in UART communication. Communication happens in commands and responses. If you need to observe the communication to help debugging your core, you can do that with the script `firmware-bl616/scripts/liveuart.py`. It will try to decode and dump the communication. There are two streams - BL616 to FPGA, and FPGA to BL616. So it would be better if you use a 2-UART USB-serial adapter, and connect the wires like this:
+The BL616 MCU acts as the master in UART communication. Communication happens in commands and responses. If you only need the firmware's own log, use the [USB debug console](../user-guide/debug-console.md) instead: no adapter is needed, and its `link` and `sniff` commands show the live traffic counters. If you need to observe the communication to help debugging your core, you can do that with the script `firmware-bl616/scripts/liveuart.py`. It will try to decode and dump the communication. There are two streams - BL616 to FPGA, and FPGA to BL616. So it would be better if you use a 2-UART USB-serial adapter, and connect the wires like this:
 
 ![](tangcore_uart.drawio.svg)
 
@@ -57,31 +57,56 @@ Version: Mar  7 2025<get_core_id>
 <overlay_state:b'\x01'>
 ```
 
-In addition to the text messages. Those in brackets (e.g. `<get_core_id>`) are commands sent to the FPGA, as listed in the protocol description next section. So this `printf`-style debugging is helpful in checking what is happening in realtime. You can check the firmware source code (`firmware-bl616/main.c`) to pinpoint problems.
+In addition to the text messages. Those in brackets (e.g. `<get_core_id>`) are commands sent to the FPGA, as listed in the protocol description next section. So this `printf`-style debugging is helpful in checking what is happening in realtime. You can check the firmware source code (`firmware-bl616/main.cpp`) to pinpoint problems.
 
 You can also watch the traffic the other way (FPGA to MCU) on the other pin (BL616_UART_RX) with `python liveuart.py -f <com_port>`. It contains mostly joypad status updates and responses to other commands from the MCU.
 
 ## UART Protocol
 
-The protocol is handled in `iosys_bl616.v`. If you need to debug BL616-FPGA communication, then here's the protocol in use:
+The protocol is handled in `iosys_bl616.v`. The link runs at 2 Mbaud, 8N1. Every message in either direction is a frame:
+
+```
+0xAA  len[15:0]  cmd  payload
+```
+
+`len` is big-endian and counts the command byte plus the payload.
+
+Commands from BL616 to FPGA:
 
 | Command | Description |
 |-----|-----|
-| 0x01|get core ID (response: 0x11, followed by one byte of core ID). this is used to identify the core and check whether the core is ready|
-|0x02|get core config string (response: 0x22, followed by null-terminated string)|
-|0x03 x[31:0]|set core config status|
-|0x04 x[7:0] y[7:0]|move overlay text cursor to (x, y)|
-|0x05 <string>|display null-terminated string from cursor|
-|0x06 loading_state[7:0]|set loading state (rom_loading)|
-|0x07 len[23:0] <data>|load len (MSB-first) bytes of data to rom_do|
-|0x08 x[7:0]|turn overlay on/off|
+|0x01|Get core ID (response 0x01). Used to identify the core and check that it's ready.|
+|0x02|Get core config string (response 0x02)|
+|0x03 x[31:0]|Set core config status. Bits 15:0 are core specific; bits 16 and up are shared (scanlines, pause in menu, pad mute), see `CORE_CFG_*` in the firmware's `utils/utils.h`.|
+|0x04 x[7:0] y[7:0]|Move overlay text cursor to (x, y)|
+|0x05 <string>|Display string from cursor (length from the frame header)|
+|0x06 loading_state[7:0]|Set loading state (0: core running, non-0: loading)|
+|0x07 <data>|Load data to `rom_do` (length from the frame header)|
+|0x08 x[7:0]|x[0] turns the overlay on/off|
+|0x09 hid1[15:0] hid2[15:0]|USB joystick state from the BL616|
+|0x0a <data_sector>|A 512-byte sector for the floppy data FIFO|
+|0x0b addr[15:0] data[15:0]|Write to the disk management interface|
+|0x0c <scancode>|PS/2 scancode (length from the frame header)|
+|0x0d <string>|Debug print; cores ignore it|
+|0x11 blk[15:0] <data_512>|Write one 512-byte block of the game's save RAM (restore at game load)|
+|0x12 blk[15:0]|Read one block of save RAM (answered with response 0x0a)|
+|0x13 x[31:0]|Set the video filters (`video_config`): brightness, contrast, saturation, gamma, CRT mask, LCD grid, smoothing. The bits are documented at the top of `src/video_fx.v` in each core. 0 leaves the picture unchanged.|
+|0x14 unix[31:0] bcd[6:0] solar flags|Wall-clock time, 13 payload bytes: unix seconds (big-endian), BCD year month day weekday hour minute second (year from 2000), solar level 0-100 %, flags bit0 = cart RTC present (GBA), bit1 = solar present (GBA), bit2 = clock was user-set. Sent at game load, after reset/resume, on clock/solar change, and every 10 s in game; cores count seconds themselves between frames. Old bitstreams ignore it.|
+|0x15 code[7:0]|Switch the link baud for what follows (GBA fast loading only): 0 = 2 Mbaud, the power-on rate, 1 = 4M, 2 = 5M, 3 = 8M. Answered at the old rate with response 0x0C; both ends switch once the answer is out. A core without fast loading stays silent and the load proceeds at 2M.|
+|0x16|Ask for the load check values (GBA fast loading only; answered with response 0x0D)|
 
-Messages from FPGA to BL616:
+Responses from FPGA to BL616:
 
 | Response | Description |
 |-----|-----|
-| 0x01 joy1[7:0] joy1[15:8] joy2[7:0] joy2[15:8]|     Every 20ms, send joypad state|
-|0x11 core_id[7:0]|send core ID|
-|0x22 <string>|send null-terminated core config string|
+|0x01 core_id[7:0]|Core ID|
+|0x02 <string>|Core config string (length from the frame header)|
+|0x03 joy1[15:0] joy2[15:0]|DS2/SNES joypad state. Sent when it changes, at most every 20 ms.|
+|0x04 lba[15:0] <data_512>|Write a sector to disk|
+|0x05 lba[15:0]|Read a sector from disk (answered with command 0x0a)|
+|0x0a blk[15:0] <data_512>|A block of save RAM, the answer to command 0x12|
+|0x0b <pad>|The game wrote save RAM since the last read|
+|0x0C code max|Fast-load baud answer (GBA only): the accepted baud code plus the highest code the core offers|
+|0x0D crc32 cnt|Fast-load check values (GBA only): CRC-32 (zlib) and byte count of the `rom_do` bytes since loading last changed, big-endian 32 bits each|
 
 
