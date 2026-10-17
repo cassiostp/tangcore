@@ -21,4 +21,4 @@
 	url = ../smstang.git
 [submodule "pctang"]
 	path = pctang
-	url = ../pctang.git
+	url = https://github.com/nand2mario/pctang.git
