@@ -49,7 +49,6 @@ On top of upstream TangCore:
   - brightness, contrast, saturation and gamma;
   - CRT masks;
   - the LCD grid for GBA and Game Gear;
-  - Sharp and Soft smoothing.
 - **More games:**
   - NES: the Konami VRC family and MMC5 with their sound chips, and Sunsoft 5B audio.
   - SNES:

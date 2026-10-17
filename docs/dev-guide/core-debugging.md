@@ -77,7 +77,7 @@ Commands from BL616 to FPGA:
 |-----|-----|
 |0x01|Get core ID (response 0x01). Used to identify the core and check that it's ready.|
 |0x02|Get core config string (response 0x02)|
-|0x03 x[31:0]|Set core config status. Bits 15:0 are core specific; bits 16 and up are shared (scanlines, pause in menu, pad mute), see `CORE_CFG_*` in the firmware's `utils/utils.h`.|
+|0x03 x[31:0]|Set core config status. Bits 15:0 are core specific; bits 16 and up are shared (scanlines, pause in menu, pad mute, and bit 21, the scale: 0 integer, 1 full, applied with scanlines on or off; the LCD grid forces integer), see `CORE_CFG_*` in the firmware's `utils/utils.h`.|
 |0x04 x[7:0] y[7:0]|Move overlay text cursor to (x, y)|
 |0x05 <string>|Display string from cursor (length from the frame header)|
 |0x06 loading_state[7:0]|Set loading state (0: core running, non-0: loading)|

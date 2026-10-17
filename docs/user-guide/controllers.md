@@ -40,7 +40,7 @@ The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< M
 
 The HDMI output runs at each console's own refresh rate: Game Boy Advance 59.75 Hz, MegaDrive/Genesis and Master System 59.93 Hz. NES, SNES and the menu itself run at standard 60.00 Hz. There is no rate selector.
 
-**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Scale**. Changes reach the game at once and are stored when you leave a screen. Each screen has a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
+**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Scale**. Changes reach the game at once and are stored when you leave a screen. Scanlines, Color, CRT mask and LCD grid each have a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. **A** on **Scale** switches it between Full and Integer. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
 
 The settings apply to every core. They need the core .bin files from the same TangCore release; older cores ignore them. PC/XT has none of them.
 
