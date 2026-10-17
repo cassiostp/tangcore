@@ -19,16 +19,25 @@ docs live here under `tools/smoke/`.
 
 ```sh
 sh tools/smoke/smoke.sh --tag <run-tag> [--nes REF] [--snes REF] [--gba REF] \
-    [--md REF] [--sms REF] [--jobs N] [--short] [--accept]
+    [--md REF] [--sms REF] [--jobs N] [--short] [--accept] [--dry-run]
 ```
 
 Refs default to the round-5 integration heads. Each ref is any git ref of
 that core's repo, so the suite compares arbitrary builds. It clones each
-core fresh, builds the five models in docker, runs all games (up to
-`--jobs`, default 4, in parallel — keep to at most half the machine's
-cores; a GBA run uses ~4 threads), and writes a dated report to
-`~/tangcore-smoke/runs/<date>-<tag>/REPORT.md` against the stored
-baseline. The first reviewed run takes `--accept` to become the baseline.
+core fresh, builds the five models in docker, runs all games (at most
+`--jobs`, default 4, at once across all cores — one global token bucket,
+so a slow GBA leg no longer wedges the other cores behind a batch `wait`),
+and writes a dated report to `~/tangcore-smoke/runs/<date>-<tag>/REPORT.md`
+against the stored baseline. The first reviewed run takes `--accept` to
+become the baseline.
+`--dry-run` skips checkouts, builds and models (each game stub just
+sleeps) to exercise the limiter without ROMs, network or docker; every
+run appends `START`/`END` lines to `<out>/timeline.log` so the peak
+overlap can be checked. Slots are per game run, not per thread: a GBA
+model is built `--threads 4`, so one GBA run can occupy ~4 threads and
+peak load is roughly 4x(concurrent GBA runs) + 1x(the rest) — keep
+`--jobs` at most half the machine's cores. Every model process and every
+build container runs under `nice -n 19`.
 `--short` runs routine depth (NES 900 / SNES 600 / GBA 400 / MD 450 /
 SMS 300 frames); full depth (1800/1200/1250/900/600) is for pre-QA
 weekends — the GBA leg dominates either way (see Known limits).

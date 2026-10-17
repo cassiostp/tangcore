@@ -5,7 +5,8 @@
 #   GAME: short name. ROMFILE: local ROM path (.sfc/.smc).
 #   FRAMES: SNES frames to simulate. OUTDIR: per-run output dir (created).
 #   SCRIPT: input script (default ../inputs/snes_default.txt).
-# Env: SMOKE_BUILD (model root), SMOKE_SNES_SRC (snestang checkout for DSP hex).
+# Env: SMOKE_BUILD (model root), SMOKE_SNES_SRC (snestang checkout for DSP hex),
+# SMOKE_DRY_RUN (if set: sleep instead of simulating, for limiter tests).
 set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 ROOT=$PWD
@@ -15,6 +16,12 @@ case $ROM in /*) ;; *) ROM=$ROOT/$ROM;; esac
 BLD=${SMOKE_BUILD:-$SDIR/build}
 SRC=${SMOKE_SNES_SRC:?set SMOKE_SNES_SRC to the snestang checkout}
 B=$BLD/snes/$TAG
+if [ -n "$SMOKE_DRY_RUN" ]; then
+  mkdir -p "$OUT"
+  sleep $((${SMOKE_DRY_SLEEP:-8} + ${#GAME} % 7))
+  echo "DRYRUN_OK game=$GAME frames=$FRAMES"
+  exit 0
+fi
 test -x "$B/obj/obj/Vsnestang_smoke" || { echo "model $TAG not built"; exit 1; }
 mkdir -p "$OUT" "$BLD/tmp"
 rm -f "$OUT/$GAME".log "$OUT/$GAME".aud "$OUT/$GAME".stdout "$OUT/$GAME".stderr "$OUT/$GAME"_f*.ppm "$OUT/$GAME"_bsram.bin "$OUT/$GAME"_aram.bin
@@ -31,6 +38,6 @@ MCLK=$((FRAMES * 357380 + 20000000))
 DUMPS=$(python3 -c "print(','.join(str(f) for f in [60,300,600,900,1200,1800,2400,3600] if f <= $FRAMES))")
 echo "mclk budget: $MCLK dumps: $DUMPS"
 T0=$(date +%s)
-(cd "$R" && "$B/obj/obj/Vsnestang_smoke" -m "$MCLK" -o "$OUT/$GAME" -i "$SCRIPT" -d "$DUMPS" >"$OUT/$GAME.stdout" 2>"$OUT/$GAME.stderr")
+(cd "$R" && nice -n 19 "$B/obj/obj/Vsnestang_smoke" -m "$MCLK" -o "$OUT/$GAME" -i "$SCRIPT" -d "$DUMPS" >"$OUT/$GAME.stdout" 2>"$OUT/$GAME.stderr")
 T1=$(date +%s)
 echo "RUN_OK game=$GAME frames=$FRAMES wall=$((T1 - T0))s"
