@@ -1,16 +1,6 @@
-# TangCore - FPGA Gaming Distribution for Sipeed Tang
+# TangCore for the Tang Console 138K
 
-<p align="right">
-  <a title="Documentation" href="https://nand2mario.github.io/tangcore"><img src="https://img.shields.io/website.svg?label=nand2mario.github.io%2Ftangcore&longCache=true&style=flat-square&url=http%3A%2F%2Fnand2mario.github.io%2Ftangcore%2F&logo=GitHub"></a><!--
-  -->
-  <a title="Releases" href="https://github.com/nand2mario/tangcore/releases"><img src="https://img.shields.io/github/commits-since/nand2mario/tangcore/latest.svg?longCache=true&style=flat-square&logo=git&logoColor=fff"></a>
-</p>
-
-TangCore is a comprehensive FPGA gaming distribution that brings classic gaming systems to Sipeed Tang FPGA boards. It combines multiple high-quality gaming cores into a single package with an easy-to-use menu system.
-
-Please [file an issue](https://github.com/nand2mario/tangcore/issues) if you run into any problems, like game compatibility and display glitches.
-
-## 🎮 Supported Systems
+A fork of [nand2mario's TangCore](https://github.com/nand2mario/tangcore), the FPGA gaming distribution for Sipeed Tang boards, **focused on the [Sipeed Tang Console 138K](https://sipeed.com/tangconsole)**. Every change here is built for, and tested on, the 138K. The goal is console-accurate play: games at their original speed, saves that just work, and the cartridge chips the big games need.
 
 <div align="center">
   <img src="doc/tangcore-nes.png" width="300" />
@@ -19,73 +9,115 @@ Please [file an issue](https://github.com/nand2mario/tangcore/issues) if you run
   <img src="doc/tangcore-genesis.png" width="300" />
 </div>
 
-- **[NESTang](https://github.com/nand2mario/nestang/)** - Nintendo Entertainment System
-  - Cycle-accurate NES emulation
-  - Extensive mapper support
-  - 720p HDMI output
+## Systems
 
-- **[SNESTang](https://github.com/nand2mario/snestang/)** - Super Nintendo Entertainment System
-  - Support for LoROM, HiROM and ExHiROM
-  - DSP-1/2/3/4, S-RTC, OBC-1 extension chips
+| System | Core | Upstream |
+|---|---|---|
+| NES / Famicom | [nestang](https://github.com/cassiostp/nestang) | [nand2mario/nestang](https://github.com/nand2mario/nestang) |
+| Super Nintendo | [snestang](https://github.com/cassiostp/snestang) | [nand2mario/snestang](https://github.com/nand2mario/snestang) |
+| Game Boy Advance | [gbatang](https://github.com/cassiostp/gbatang) | [nand2mario/gbatang](https://github.com/nand2mario/gbatang) |
+| Genesis / Mega Drive | [mdtang](https://github.com/cassiostp/mdtang) | [nand2mario/mdtang](https://github.com/nand2mario/mdtang) |
+| Master System / Game Gear | [smstang](https://github.com/cassiostp/smstang) | [nand2mario/smstang](https://github.com/nand2mario/smstang) |
 
-- **[GBATang](https://github.com/nand2mario/gbatang/)** - Game Boy Advance
-  - High compatibility
-  - Open source BIOS included
-  - Full 32MB gamepak support
+The firmware that runs the menu, the SD card, USB and saves on the board's BL616 microcontroller is [firmware-bl616](https://github.com/cassiostp/firmware-bl616). The menu's own FPGA design is [monitorcore](https://github.com/cassiostp/monitorcore).
 
-- **[MDTang](https://github.com/nand2mario/mdtang/)** - Sega Genesis/Mega Drive
-  - Accurate Genesis/Mega Drive emulation
+## What this fork adds
 
-- **[SMSTang](https://github.com/nand2mario/smstang/)** - Sega Master System
+On top of upstream TangCore:
 
-- 🌟🌟 **Try the new [486Tang](https://github.com/nand2mario/486tang)**
+- **Original game speed.** The HDMI output runs at each console's own refresh rate instead of 60.00 Hz, and the core is locked to it. Games run within 0.04 % of the original hardware, never slower, and the picture never tears. A standard-60 Hz build stays available for displays that refuse a native rate.
 
-## 💻 Supported Hardware
+  | Console | Original | HDMI output |
+  |---|---|---|
+  | NES, SNES | 60.10 Hz | 60.11 Hz |
+  | Genesis, Master System | 59.92 Hz | 59.93 Hz |
+  | Game Boy Advance | 59.73 Hz | 59.75 Hz |
 
-| Board Model | Status | Notes |
-|------------|--------|-------|
-| [Tang Console 60K](https://sipeed.com/tangconsole) | ✅ Recommended | Best overall experience |
-| Tang Console 138K | ✅ Experimental | Supported since April 2025 |
-| Tang Primer 25K | ✅ Experimental | NES/SNES only |
+- **Battery saves on every core.** They're written to the SD card as the game saves:
+  - NES and SNES;
+  - Genesis, including EEPROM games;
+  - GBA: SRAM, Flash and EEPROM, plus the real-time clock;
+  - Master System.
 
-<img src="doc/tangcore-boards.jpg" width=450> 
+  Super FX and SA-1 games save when you open the game menu, because their save RAM doubles as the chip's work memory.
+- **An in-game menu**, opened with a button combination. It pauses the game and covers:
+  - reset and close;
+  - video settings;
+  - the save status.
+- **Video options:**
+  - scanlines, with darkness and thickness;
+  - brightness, contrast, saturation and gamma;
+  - CRT masks;
+  - the LCD grid for GBA and Game Gear;
+  - Sharp and Soft smoothing.
+- **More games:**
+  - NES: the Konami VRC family and MMC5 with their sound chips, and Sunsoft 5B audio.
+  - SNES:
+    - Super FX (Star Fox, Yoshi's Island);
+    - SA-1 (Kirby Super Star, Super Mario RPG);
+    - CX4 (Mega Man X2/X3);
+    - S-RTC;
+    - blended hi-res text.
+  - Genesis: 8 MB ROMs (Super Street Fighter II) and EEPROM saves.
+  - GBA: the cartridge real-time clock and the Boktai solar sensor.
+  - Game Gear mode.
+- **A wall clock** (Options → Date & time) for the games that use one.
+- **Faster loading:** GBA ROMs load about 4x faster over a negotiated 8 Mbaud link, checked by CRC.
+- **Sound fixes:**
+  - SNES: no crackle on high notes, and sound effects in Zelda 3's rain;
+  - GBA: the tone channels at their real pitch;
+  - Genesis: music pitch exact;
+  - NES: no DC offset.
+- **Reliability:**
+  - USB pads recover after reloads;
+  - menus can't be wedged by a stuck button;
+  - the link between the BL616 and the FPGA heals itself;
+  - a firmware watchdog restarts the firmware.
+- **Diagnostics:**
+  - a USB debug console over the BL616 port (live log and commands, no adapter);
+  - a post-mortem log on the card after MODE;
+  - on-screen diagnostic rows.
+- **Experimental:** black frame insertion at 120 Hz on the NES (480p and 720p), for sharper motion on LCDs.
 
-## 🚀 Quick Start
+The newest of these are in each repository's `int/round5` branch while they're tested on hardware. They reach `main`/`master` once that test passes. Known problems are tracked as [issues](https://github.com/cassiostp/tangcore/issues) here and in [firmware-bl616](https://github.com/cassiostp/firmware-bl616/issues).
 
-For detailed setup instructions, please refer to our [Installation Guide](https://nand2mario.github.io/tangcore/user-guide/installation/). Here's a quick overview:
+## Hardware
 
-1. Download the latest [TangCore release](https://github.com/nand2mario/tangcore/releases)
-2. Flash the firmware using Bouffalo Lab Dev Cube
-3. Prepare a USB drive with FPGA cores and your game ROMs
-4. Connect required peripherals (HDMI and controller)
-5. Power on and enjoy!
+| Board | Status in this fork |
+|---|---|
+| **Tang Console 138K** | **The target.** Everything is built and tested on it. |
+| Tang Console 60K | The cores still build, without the SNES coprocessors (Super FX, SA-1, CX4). Not tested on hardware here; 60K-only problems are filed with the [`console60k`](https://github.com/cassiostp/tangcore/issues?q=label%3Aconsole60k) label. |
+| Tang Primer 25K, Mega 60K/138K, Nano 20K | Inherited from upstream; not built or tested here. |
 
-## 🛠️ Documentation
+## Installing
 
-TangCore uses a different architecture compared to individual cores (NESTang/SNESTang):
-- Firmware runs on BL616 MCU instead of FPGA
-- Fast core switching via JTAG
-- USB storage support
-- SOM-connector debugging interface
+There are no releases from this fork yet. The firmware and cores are built by GitHub Actions (see [AGENTS.md](AGENTS.md) for the commands). With TangCore firmware already on the board:
+1. Copy the cores into `cores/console138k/` on the SD card.
+2. Flash the firmware from **Options → Flash mode**.
 
-For detailed development information, see an introduction to [TangCore archtecture](https://nand2mario.github.io/tangcore/dev-guide/architecture/), [building from sources](https://nand2mario.github.io/tangcore/dev-guide/building/), how to [develop a new core](https://nand2mario.github.io/tangcore/dev-guide/core-development/), and [core debugging guide](https://nand2mario.github.io/tangcore/dev-guide/core-debugging/).
+Never overwrite Sipeed's partner image at flash address 0x0. The [user guide](docs/user-guide/installation.md) covers first-time installation and controllers.
 
-My blog post on TangCore,
+## Development
 
-* [MCU for Better FPGA Gaming on Tang Console](https://nand2mario.github.io/posts/2025/mcu_for_better_fpga_gaming/)
+- **Branches:** fixes and features go on `fix/*` and `feature/*` branches. They're collected on `int/<round>`, built for hardware testing as `qa/<round>`, and merged into `main`/`master` once a round passes.
+- **Issues:** cores and tooling are tracked [here](https://github.com/cassiostp/tangcore/issues), the firmware in [firmware-bl616](https://github.com/cassiostp/firmware-bl616/issues).
+- **Testing:**
+  - every core build fails on any timing violation;
+  - each core has simulation benches in `sim/`;
+  - the firmware runs on Linux in a host simulator, against a fake FPGA or the real cores' RTL in Verilator;
+  - [`tools/smoke/`](tools/smoke) runs every local test ROM through its core in full simulation and compares the result with the last good build.
+- **Working on it:** read [AGENTS.md](AGENTS.md), and the `AGENTS.md` in each repository.
 
-## 📝 License
+Upstream's architecture and core-development guides are in [`docs/dev-guide/`](docs/dev-guide).
 
-TangCore firmware is licensed under Apache 2.0. Each core maintains its original license - please check individual core directories for details.
+## Credits
 
-## 🙏 Acknowledgments
+[nand2mario](https://github.com/nand2mario) wrote TangCore and the cores this fork builds on. The cores also draw on:
+- the MiSTer FPGA cores and their developers;
+- srg320's SNES coprocessor designs (SA-1, Super FX, CX4);
+- [hdl-util/hdmi](https://github.com/hdl-util/hdmi);
+- [openFPGALoader](https://github.com/trabucayre/openFPGALoader) by Gwenhael Goavec-Merou.
 
-- MiSTer FPGA cores and their developers
-- openFPGALoader by Gwenhael Goavec-Merou
+## License
 
-
-## 📫 Contact
-
-For updates and announcements, follow [@nand2mario](https://x.com/nand2mario) on X.
-
-For support, please use the [GitHub Issues](https://github.com/nand2mario/tangcore/issues) page.  
+TangCore firmware is licensed under Apache 2.0. Each core keeps its original license; see its repository.
