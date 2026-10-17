@@ -1,0 +1,3 @@
+Default GBA smoke input (compiled into tb_smoke_gba.cpp, same as the QA4 probe):
+A (bit8) held 10 frames of every 120 starting at frame 60; Start (bit3) at frames 900-910.
+Drives title screens into attract/demo; per-game overrides are future work.
