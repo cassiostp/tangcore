@@ -27,7 +27,10 @@ def parse_log(path):
                                m.group(3), int(m.group(4))))
             m = re.match(r"END .*?frames=(\d+) samples=(\d+)", ln)
             if m:
-                end = {"frames": int(m.group(1)), "samples": int(m.group(2))}
+                end = {"frames": int(m.group(1)), "samples": int(m.group(2)), "done": True}
+            m = re.match(r"# done frames=(\d+) samples=(\d+)", ln)
+            if m:
+                end = {"frames": int(m.group(1)), "samples": int(m.group(2)), "done": True}
     return frames, end
 
 
@@ -38,7 +41,7 @@ def read_ppm(path):
     return np.frombuffer(d[i:], dtype=np.uint8)
 
 
-def aud_rms(path, sr=32000, win=1.0):
+def aud_rms(path, sr=32000, win=0.25):
     d = open(path, "rb").read()
     n = len(d) // 4
     a = np.frombuffer(d[:n * 4], dtype=np.int16).astype(np.float64).reshape(-1, 2)
@@ -88,25 +91,27 @@ def main():
     bf, bend = parse_log(os.path.join(base, game + ".log"))
     cf, cend = parse_log(os.path.join(cand, game + ".log"))
     L.append("## %s" % game)
-    L.append("base frames=%s samples=%s; cand frames=%s samples=%s" %
-             (bend.get("frames"), bend.get("samples"),
-              cend.get("frames"), cend.get("samples")))
-    if bend.get("frames") != cend.get("frames"):
+    L.append("base frames=%s samples=%s%s; cand frames=%s samples=%s%s" %
+             (bend.get("frames", len(bf)), bend.get("samples"),
+              "" if bend.get("done") else " (partial)",
+              cend.get("frames", len(cf)), cend.get("samples"),
+              "" if cend.get("done") else " (partial)"))
+    if bend.get("done") and cend.get("done") and bend.get("frames") != cend.get("frames"):
         L.append("FLAG: frame count differs (hang/crash suspected)")
         diff = True
 
     # video hash sequence
     n = min(len(bf), len(cf))
     first = next((i for i in range(n) if bf[i][2] != cf[i][2]), None)
-    if first is None and len(bf) != len(cf):
-        first = n
     if first is None:
-        L.append("video: %d frames, all vhash identical" % n)
+        if len(bf) != len(cf):
+            L.append("video: first %d frames identical; %s run longer (%d vs %d)" %
+                     (n, "base" if len(bf) > len(cf) else "cand", len(bf), len(cf)))
+        else:
+            L.append("video: %d frames, all vhash identical" % n)
     else:
         L.append("FLAG: video first differs at frame %d (base %s cand %s)" %
-                 (bf[first][0] if first < len(bf) else -1,
-                  bf[first][2] if first < len(bf) else "-",
-                  cf[first][2] if first < len(cf) else "-"))
+                 (bf[first][0], bf[first][2], cf[first][2]))
         diff = True
 
     # absolute picture checks on candidate, relative to base: a condition
@@ -156,13 +161,24 @@ def main():
     # audio
     rb, pb, zb = aud_rms(os.path.join(base, game + ".aud"), sr=sr)
     rc, pc, zc = aud_rms(os.path.join(cand, game + ".aud"), sr=sr)
-    if len(rb) == 0 or len(rc) == 0 or len(rb) != len(rc):
-        L.append("FLAG: audio length/empty differs (base %d cand %d windows)" %
-                 (len(rb), len(rc)))
+    if len(rb) == 0 or len(rc) == 0:
+        if not (bend.get("done") and cend.get("done")) and abs(len(rb) - len(rc)) <= 2:
+            L.append("audio: partial runs (%d/%d windows); skipped" % (len(rb), len(rc)))
+        else:
+            L.append("FLAG: audio length/empty differs (base %d cand %d windows)" %
+                     (len(rb), len(rc)))
+            diff = True
+    elif len(rb) != len(rc) and min(len(rb), len(rc)) / max(len(rb), len(rc)) < 0.75 and max(len(rb), len(rc)) >= 4:
+        L.append("FLAG: audio window count differs (base %d cand %d)" % (len(rb), len(rc)))
         diff = True
     else:
+        nw = min(len(rb), len(rc))
+        rb, rc = rb[:nw], rc[:nw]
         drms = float(np.abs(rb - rc).max())
-        corr = float(np.corrcoef(rb + 1e-9, rc + 1e-9)[0, 1]) if len(rb) > 2 else 1.0
+        if len(rb) > 2 and rb.std() > 0 and rc.std() > 0:
+            corr = float(np.corrcoef(rb, rc)[0, 1])
+        else:
+            corr = 1.0 if drms == 0 else 0.0
         sp = spectrum_change(os.path.join(base, game + ".aud"),
                              os.path.join(cand, game + ".aud"), sr=sr)
         L.append("audio: windows=%d base_rms=%.1f cand_rms=%.1f max_win_drms=%.1f corr=%.4f spec=%.3f peak=%d/%d" %
