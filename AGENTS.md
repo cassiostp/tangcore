@@ -69,7 +69,7 @@ gh workflow run sims.yml -R cassiostp/tangcore --ref ci/sim-tests -f core=all -f
 - The host simulator also runs locally (`bash host/run-tests.sh`, `--rtl-<core>`); see firmware-bl616's `AGENTS.md`.
 
 **Local simulations:**
-- Each core's `sim/*/README.md` says how to run its benches.
+- Each bench in a core's `sim/` has a `run.sh`; the larger ones also have a README, and the repository's own `AGENTS.md` lists them.
 - iverilog runs in the local arm64 image `tangcore-iv:1` (Icarus 12); Verilator runs in `verilator/verilator`. Run them as `docker run --rm --name <yourtask>_<bench> --user $(id -u):$(id -g) ...`, so outputs aren't root-owned.
 - `hdlc/iverilog` is amd64-only and doesn't run here.
 
