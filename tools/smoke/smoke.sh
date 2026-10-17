@@ -4,14 +4,28 @@
 # One command runs everything at given refs and writes a dated report:
 #   sh smoke.sh --tag <run-tag> [--nes REF] [--snes REF] [--gba REF]
 #               [--md REF] [--sms REF] [--jobs N] [--frames SCALE]
+#               [--short] [--accept] [--dry-run]
 #
 # Refs default to the round-5 integration heads. Each --<core> REF is any
 # git ref of that core's repo (SHA, branch). Models build in docker
 # (foreground); games run on the host, up to --jobs in parallel (default 4;
-# keep to at most half the machine's cores — a GBA run uses ~4 threads).
-# Outputs land in $SMOKE_ROOT/runs/<date>-<tag>/ with a REPORT.md comparing
-# against $SMOKE_ROOT/baseline/ (the last accepted run; first run with
-# --accept becomes the baseline).
+# keep to at most half the machine's cores — a GBA run uses ~4 threads, see
+# below). Outputs land in $SMOKE_ROOT/runs/<date>-<tag>/ with a REPORT.md
+# comparing against $SMOKE_ROOT/baseline/ (the last accepted run; first run
+# with --accept becomes the baseline).
+#
+# Parallelism: one global token bucket holds JOBS tokens, so at most JOBS
+# game runs execute at once across ALL cores (an earlier `jobs -p | wc -l`
+# limiter never throttled under dash, whose command-substitution subshells
+# see an empty job table). Slots are per game run, not per thread: the GBA
+# model is built --threads 4 (see gba/build.sh) so one GBA run can occupy
+# ~4 threads; peak load is roughly 4x(concurrent GBA runs) + 1x(the rest).
+# Every model process and every build container runs under `nice -n 19` so
+# an overnight run stays out of the way of interactive work.
+#
+# --dry-run skips checkouts, builds and the real models: each game stub
+# sleeps a few seconds instead of simulating. Use it to exercise the
+# limiter (see $OUT/timeline.log) without ROMs, network or docker.
 #
 # ROMs and everything derived stay under $SMOKE_ROOT (default
 # ~/tangcore-smoke), never in the repo. Needs network once (SMS homebrew).
@@ -28,6 +42,7 @@ SMS_REF=5159ae1
 JOBS=4
 ACCEPT=0
 SHORT=0
+DRYRUN=0
 while [ $# -gt 0 ]; do
   case $1 in
     --tag) TAG=$2; shift 2;;
@@ -39,10 +54,12 @@ while [ $# -gt 0 ]; do
     --jobs) JOBS=$2; shift 2;;
     --accept) ACCEPT=1; shift;;
     --short) SHORT=1; shift;;
+    --dry-run) DRYRUN=1; shift;;
     *) echo "unknown arg $1"; exit 1;;
   esac
 done
 test -n "$TAG" || { echo "--tag required"; exit 1; }
+case $JOBS in ''|*[!0-9]*|0) echo "--jobs needs a positive integer, got '$JOBS'"; exit 1;; esac
 # --short: routine regression depth (GBA still clears the ~65-frame PSG
 # onset with margin). Full depth is for pre-QA weekends.
 if [ "$SHORT" = 1 ]; then F_NES=900; F_SNES=600; F_GBA=400; F_MD=450; F_SMS=300;
@@ -56,6 +73,10 @@ DATE=$(date +%Y%m%d-%H%M)
 OUT=$SMOKE_ROOT/runs/$DATE-$TAG
 mkdir -p "$OUT" "$WORK/checkouts"
 echo "smoke run $TAG -> $OUT (jobs=$JOBS)"
+if [ "$DRYRUN" = 1 ]; then
+  export SMOKE_DRY_RUN=1
+  echo "dry-run: skipping checkouts, builds and real models"
+fi
 
 # ---- checkouts (fresh clones, like every round-5 task) ----
 co() { # co <core> <repo> <ref>
@@ -65,95 +86,130 @@ co() { # co <core> <repo> <ref>
   git -C "$D" checkout -q "$3"
   echo "$1 @ $(git -C "$D" rev-parse --short HEAD)"
 }
+if [ "$DRYRUN" = 0 ]; then
 co nestang nestang "$NES_REF"
 co snestang snestang "$SNES_REF"
 co gbatang gbatang "$GBA_REF"
 co mdtang mdtang "$MD_REF"
 co smstang smstang "$SMS_REF"
+fi
 
-# ---- builds (docker, foreground) ----
+# ---- builds (docker, foreground, lowest priority) ----
+# --entrypoint nice: `nice docker run` would only renice the client; the
+# build itself is a child of dockerd, so it is niced from inside.
+if [ "$DRYRUN" = 0 ]; then
 echo "=== builds ==="
-docker run --rm --name smoke_build_nes_$TAG --user "$(id -u):$(id -g)" --entrypoint sh \
+docker run --rm --name smoke_build_nes_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
   -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
   -v "$SDIR:/s" -v "$WORK/checkouts/nestang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/nes verilator/verilator:latest build.sh "nes-$TAG" /r
-docker run --rm --name smoke_build_snes_$TAG --user "$(id -u):$(id -g)" --entrypoint sh \
+  -w /s/nes verilator/verilator:latest -n 19 sh build.sh "nes-$TAG" /r
+docker run --rm --name smoke_build_snes_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
   -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
   -v "$SDIR:/s" -v "$WORK/checkouts/snestang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/snes verilator/verilator:latest build.sh "snes-$TAG" /r
-docker run --rm --name smoke_build_gba_$TAG --user "$(id -u):$(id -g)" --entrypoint sh \
+  -w /s/snes verilator/verilator:latest -n 19 sh build.sh "snes-$TAG" /r
+docker run --rm --name smoke_build_gba_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
   -e CCACHE_DISABLE=1 -e JOBS=4 -e SMOKE_BUILD=/b \
   -v "$SDIR:/s" -v "$WORK/checkouts/gbatang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/gba verilator/verilator:v5.028 build.sh "gba-$TAG" /r
-docker run --rm --name smoke_build_md_$TAG --user "$(id -u):$(id -g)" --entrypoint sh \
+  -w /s/gba verilator/verilator:v5.028 -n 19 sh build.sh "gba-$TAG" /r
+docker run --rm --name smoke_build_md_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
   -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
   -v "$SDIR:/s" -v "$WORK/checkouts/mdtang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/md verilator/verilator:latest build.sh "md-$TAG" /r
-docker run --rm --name smoke_build_sms_$TAG --user "$(id -u):$(id -g)" --entrypoint sh \
+  -w /s/md verilator/verilator:latest -n 19 sh build.sh "md-$TAG" /r
+docker run --rm --name smoke_build_sms_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
   -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
   -v "$SDIR:/s" -v "$WORK/checkouts/smstang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/sms verilator/verilator:latest build.sh "sms-$TAG" /r
+  -w /s/sms verilator/verilator:latest -n 19 sh build.sh "sms-$TAG" /r
 echo BUILD_ALL_OK
+fi
 
 # ---- SMS homebrew (own dir, downloaded once) ----
 SMSROM=$SMOKE_ROOT/roms/sms/peterlemon/VDP/HelloWorld/HelloWorld.sms
 SMSAUD=$SMOKE_ROOT/roms/sms/peterlemon/PSG/SMSAudio/SMSAudio.sms
-if [ ! -f "$SMSROM" ]; then
+if [ "$DRYRUN" = 0 ] && [ ! -f "$SMSROM" ]; then
   mkdir -p "$SMOKE_ROOT/roms/sms"
   git clone --depth 1 https://github.com/PeterLemon/SMS.git "$SMOKE_ROOT/roms/sms/peterlemon"
 fi
 
-# ---- runs (host, parallel lanes) ----
+# ---- runs (host, one global token bucket: at most $JOBS at once) ----
+# NOTE: do not "simplify" this back to `jobs -p | wc -l`: under dash (our
+# /bin/sh) a command substitution forks, and the forked subshell sees an
+# empty job table, so that test is always 0 and nothing is ever throttled.
+# Token files need no job control at all: exactly JOBS exist, each running
+# game holds one, and acquire blocks until one is returned.
 echo "=== runs ==="
 export SMOKE_SNES_SRC=$WORK/checkouts/snestang-$TAG
 export SMOKE_GBA_SRC=$WORK/checkouts/gbatang-$TAG
 export SMOKE_MD_SRC=$WORK/checkouts/mdtang-$TAG
 export SMOKE_SMS_SRC=$WORK/checkouts/smstang-$TAG
-LANES=""
-run_bg() { # run_bg <log> <cmd...>
-  LOG=$1; shift
-  while [ "$(jobs -p | wc -l)" -ge "$JOBS" ]; do sleep 20; done
-  "$@" >"$LOG" 2>&1 &
+SEMDIR=$OUT/.sem
+mkdir -p "$SEMDIR/tokens" "$SEMDIR/held"
+i=1; while [ "$i" -le "$JOBS" ]; do touch "$SEMDIR/tokens/$i"; i=$((i + 1)); done
+trap 'rm -rf "$SEMDIR"' EXIT
+acquire() { # acquire <var>: claim a token into $var, blocking until one frees
+  __v=$1
+  while true; do
+    for t in "$SEMDIR"/tokens/*; do
+      if [ -f "$t" ]; then
+        n=$(basename "$t")
+        if mv "$SEMDIR/tokens/$n" "$SEMDIR/held/$n" 2>/dev/null; then
+          eval "$__v=\$n"
+          return 0
+        fi
+      fi
+    done
+    sleep 5
+  done
+}
+run_bg() { # run_bg <name> <log> <cmd...>
+  NAME=$1; LOG=$2; shift 2
+  acquire TOK
+  ( set +e
+    echo "START $(date +%s) $NAME" >>"$OUT/timeline.log"
+    "$@" >"$LOG" 2>&1; rc=$?
+    echo "END $(date +%s) $NAME rc=$rc" >>"$OUT/timeline.log"
+    mv "$SEMDIR/held/$TOK" "$SEMDIR/tokens/$TOK" 2>/dev/null || true
+    exit "$rc" ) &
 }
 SN=$SDIR/snes/run_game.sh; NE=$SDIR/nes/run_game.sh
 GB=$SDIR/gba/run_game.sh; MD=$SDIR/md/run_game.sh; SM=$SDIR/sms/run_game.sh
 # NES (1800 frames = 30 s)
-run_bg "$OUT/run-nes.log" sh "$NE" "nes-$TAG" smb3 "$ROMS/NES/Super Mario Bros. 3 (USA) (Rev 1).nes" $F_NES "$OUT/nes"
-run_bg "$OUT/run-nes2.log" sh "$NE" "nes-$TAG" zelda "$ROMS/NES/Legend of Zelda, The (USA) (Rev 1).nes" $F_NES "$OUT/nes"
-run_bg "$OUT/run-nes3.log" sh "$NE" "nes-$TAG" rockman3 "$ROMS/NES/Rockman 3 - Dr. Wily no Saigo! (Japan).nes" $F_NES "$OUT/nes"
-run_bg "$OUT/run-nes4.log" sh "$NE" "nes-$TAG" rockman4 "$ROMS/NES/Rockman 4 - Aratanaru Yabou!! (Japan).nes" $F_NES "$OUT/nes"
+run_bg nes/smb3 "$OUT/run-nes.log" sh "$NE" "nes-$TAG" smb3 "$ROMS/NES/Super Mario Bros. 3 (USA) (Rev 1).nes" $F_NES "$OUT/nes"
+run_bg nes/zelda "$OUT/run-nes2.log" sh "$NE" "nes-$TAG" zelda "$ROMS/NES/Legend of Zelda, The (USA) (Rev 1).nes" $F_NES "$OUT/nes"
+run_bg nes/rockman3 "$OUT/run-nes3.log" sh "$NE" "nes-$TAG" rockman3 "$ROMS/NES/Rockman 3 - Dr. Wily no Saigo! (Japan).nes" $F_NES "$OUT/nes"
+run_bg nes/rockman4 "$OUT/run-nes4.log" sh "$NE" "nes-$TAG" rockman4 "$ROMS/NES/Rockman 4 - Aratanaru Yabou!! (Japan).nes" $F_NES "$OUT/nes"
 # SNES (1200 frames = 20 s; CX4/SA-1 games cannot boot in Verilator: skipped)
-run_bg "$OUT/run-snes.log" sh "$SN" "snes-$TAG" zelda "$ROMS/SNES/Legend of Zelda, The - A Link to the Past (USA).sfc" $F_SNES "$OUT/snes"
-run_bg "$OUT/run-snes2.log" sh "$SN" "snes-$TAG" smw "$ROMS/SNES/Super Mario World (U) [!].smc" $F_SNES "$OUT/snes"
-run_bg "$OUT/run-snes3.log" sh "$SN" "snes-$TAG" starfox "$ROMS/SNES/Star Fox (USA) (Rev 2).sfc" $F_SNES "$OUT/snes"
-run_bg "$OUT/run-snes4.log" sh "$SN" "snes-$TAG" yoshi "$ROMS/SNES/Super Mario World 2 - Yoshi's Island (U) (V1.1).smc" $F_SNES "$OUT/snes"
-run_bg "$OUT/run-snes5.log" sh "$SN" "snes-$TAG" mariokart "$ROMS/SNES/Super Mario Kart (USA).sfc" $F_SNES "$OUT/snes"
+run_bg snes/zelda "$OUT/run-snes.log" sh "$SN" "snes-$TAG" zelda "$ROMS/SNES/Legend of Zelda, The - A Link to the Past (USA).sfc" $F_SNES "$OUT/snes"
+run_bg snes/smw "$OUT/run-snes2.log" sh "$SN" "snes-$TAG" smw "$ROMS/SNES/Super Mario World (U) [!].smc" $F_SNES "$OUT/snes"
+run_bg snes/starfox "$OUT/run-snes3.log" sh "$SN" "snes-$TAG" starfox "$ROMS/SNES/Star Fox (USA) (Rev 2).sfc" $F_SNES "$OUT/snes"
+run_bg snes/yoshi "$OUT/run-snes4.log" sh "$SN" "snes-$TAG" yoshi "$ROMS/SNES/Super Mario World 2 - Yoshi's Island (U) (V1.1).smc" $F_SNES "$OUT/snes"
+run_bg snes/mariokart "$OUT/run-snes5.log" sh "$SN" "snes-$TAG" mariokart "$ROMS/SNES/Super Mario Kart (USA).sfc" $F_SNES "$OUT/snes"
 # GBA (1250 frames)
-run_bg "$OUT/run-gba.log" sh "$GB" "gba-$TAG" aria "$ROMS/GBA/Castlevania - Aria of Sorrow (USA).gba" $F_GBA "$OUT/gba"
-run_bg "$OUT/run-gba2.log" sh "$GB" "gba-$TAG" minish "$ROMS/GBA/Legend of Zelda, The - The Minish Cap (USA).gba" $F_GBA "$OUT/gba"
-run_bg "$OUT/run-gba3.log" sh "$GB" "gba-$TAG" firered "$ROMS/GBA/Pokemon - FireRed Version (USA, Europe) (Rev 1).gba" $F_GBA "$OUT/gba"
-run_bg "$OUT/run-gba4.log" sh "$GB" "gba-$TAG" zero "$ROMS/GBA/Metroid - Zero Mission (USA).gba" $F_GBA "$OUT/gba"
-run_bg "$OUT/run-gba5.log" sh "$GB" "gba-$TAG" kirby "$ROMS/GBA/Kirby & The Amazing Mirror (USA).gba" $F_GBA "$OUT/gba"
-run_bg "$OUT/run-gba6.log" sh "$GB" "gba-$TAG" mario "$ROMS/GBA/Mario & Luigi - Superstar Saga (USA).gba" $F_GBA "$OUT/gba"
-wait
+run_bg gba/aria "$OUT/run-gba.log" sh "$GB" "gba-$TAG" aria "$ROMS/GBA/Castlevania - Aria of Sorrow (USA).gba" $F_GBA "$OUT/gba"
+run_bg gba/minish "$OUT/run-gba2.log" sh "$GB" "gba-$TAG" minish "$ROMS/GBA/Legend of Zelda, The - The Minish Cap (USA).gba" $F_GBA "$OUT/gba"
+run_bg gba/firered "$OUT/run-gba3.log" sh "$GB" "gba-$TAG" firered "$ROMS/GBA/Pokemon - FireRed Version (USA, Europe) (Rev 1).gba" $F_GBA "$OUT/gba"
+run_bg gba/zero "$OUT/run-gba4.log" sh "$GB" "gba-$TAG" zero "$ROMS/GBA/Metroid - Zero Mission (USA).gba" $F_GBA "$OUT/gba"
+run_bg gba/kirby "$OUT/run-gba5.log" sh "$GB" "gba-$TAG" kirby "$ROMS/GBA/Kirby & The Amazing Mirror (USA).gba" $F_GBA "$OUT/gba"
+run_bg gba/mario "$OUT/run-gba6.log" sh "$GB" "gba-$TAG" mario "$ROMS/GBA/Mario & Luigi - Superstar Saga (USA).gba" $F_GBA "$OUT/gba"
 # Genesis (900 frames) + SMS homebrew (600 frames)
-run_bg "$OUT/run-md.log" sh "$MD" "md-$TAG" sonic2 "$ROMS/Genesis/Sonic The Hedgehog 2 (World) (Rev A).md" $F_MD "$OUT/md"
-run_bg "$OUT/run-md2.log" sh "$MD" "md-$TAG" ps2 "$ROMS/Genesis/Phantasy Star II (USA, Europe) (Rev A).md" $F_MD "$OUT/md"
-run_bg "$OUT/run-sms.log" sh "$SM" "sms-$TAG" hello "$SMSROM" $F_SMS "$OUT/sms"
-run_bg "$OUT/run-sms2.log" sh "$SM" "sms-$TAG" smsaudio "$SMSAUD" $F_SMS "$OUT/sms"
+run_bg md/sonic2 "$OUT/run-md.log" sh "$MD" "md-$TAG" sonic2 "$ROMS/Genesis/Sonic The Hedgehog 2 (World) (Rev A).md" $F_MD "$OUT/md"
+run_bg md/ps2 "$OUT/run-md2.log" sh "$MD" "md-$TAG" ps2 "$ROMS/Genesis/Phantasy Star II (USA, Europe) (Rev A).md" $F_MD "$OUT/md"
+run_bg sms/hello "$OUT/run-sms.log" sh "$SM" "sms-$TAG" hello "$SMSROM" $F_SMS "$OUT/sms"
+run_bg sms/smsaudio "$OUT/run-sms2.log" sh "$SM" "sms-$TAG" smsaudio "$SMSAUD" $F_SMS "$OUT/sms"
 wait
 echo RUN_ALL_OK
 
-# ---- compare against baseline ----
+# ---- compare against baseline (skipped for dry runs: stubs have nothing to compare) ----
 echo "=== compare ==="
-if [ ! -d "$SMOKE_ROOT/baseline" ]; then
+if [ "$DRYRUN" = 1 ]; then
+  echo "dry-run: no compare, no accept"
+elif [ ! -d "$SMOKE_ROOT/baseline" ]; then
   echo "no baseline yet; this run becomes reference material only."
   echo "re-run with --accept once reviewed to bless it as the baseline."
 else
   sh "$SDIR/compare-all.sh" "$SMOKE_ROOT/baseline" "$OUT" >"$OUT/REPORT.md" 2>&1 || true
   cat "$OUT/REPORT.md"
 fi
-if [ "$ACCEPT" = 1 ]; then
+if [ "$ACCEPT" = 1 ] && [ "$DRYRUN" = 0 ]; then
   rm -rf "$SMOKE_ROOT/baseline"
   mkdir -p "$SMOKE_ROOT/baseline"
   for d in nes snes gba md sms; do
