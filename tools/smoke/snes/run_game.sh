@@ -34,7 +34,11 @@ cp -f "$SRC/src/chip/DSP/"*.hex "$R/" 2>/dev/null || true
 if [ ! -s "$R/random_4m_words.hex" ]; then
   python3 -c "open('$R/random_4m_words.hex','w').write('0000\n' * (4 * 1024 * 1024))"
 fi
-MCLK=$((FRAMES * 357380 + 20000000))
+# Real-controller runs also pay the 200 us SDRAM init and a multi-megabyte
+# loader stream before frame 0; the behavioural budget's +20M is tight there.
+HEAD=20000000
+if [ -n "$SMOKE_REAL_SDRAM" ]; then HEAD=40000000; fi
+MCLK=$((FRAMES * 357380 + HEAD))
 DUMPS=$(python3 -c "print(','.join(str(f) for f in [60,300,600,900,1200,1800,2400,3600] if f <= $FRAMES))")
 echo "mclk budget: $MCLK dumps: $DUMPS"
 T0=$(date +%s)
