@@ -26,13 +26,18 @@ on:
         options: [console138k, console60k]
         default: console138k
         required: true
-
+      variant:
+        description: Build variant (hz120 = the 480p 120 Hz build, saved as <core>_120hz.bin)
+        type: choice
+        options: [standard, hz120]
+        default: standard
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: cores-${{ inputs.core }}-${{ inputs.ref }}-${{ inputs.board }}
+  group: cores-${{ inputs.core }}-${{ inputs.ref }}-${{ inputs.board }}-${{ inputs.variant }}
   cancel-in-progress: true
 
 env:
@@ -40,13 +45,16 @@ env:
 
 jobs:
   build:
-    name: ${{ inputs.core }} / ${{ inputs.board }}
+    name: ${{ inputs.core }} / ${{ inputs.board }} / ${{ inputs.variant }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
       CORE: ${{ inputs.core }}
       BOARD: ${{ inputs.board }}
       CORE_REF: ${{ inputs.ref }}
+      # build.tcl reads it as $::env(TANGCORE_VARIANT); unset or "standard"
+      # is the normal build
+      TANGCORE_VARIANT: ${{ inputs.variant }}
     steps:
       - name: Free disk space
         run: |
@@ -143,6 +151,11 @@ jobs:
           # plain-text .tr right before "run all" (set_device in build.tcl
           # resets options set earlier).
           grep -q '^run all' build.tcl || { echo "::error::build.tcl has no 'run all' line"; exit 1; }
+          # a core that doesn't know the variant would silently build the
+          # standard bitstream under the variant's name
+          if [ "$TANGCORE_VARIANT" != standard ] && ! grep -q TANGCORE_VARIANT build.tcl; then
+            echo "::error::build.tcl at this ref has no $TANGCORE_VARIANT variant (TANGCORE_VARIANT)"; exit 1
+          fi
           sed 's/^run all/set_option -gen_text_timing_rpt 1\nrun all/' build.tcl > ci_build.tcl
           "$GOWIN_ROOT/IDE/bin/gw_sh" ci_build.tcl "$BOARD" 2>&1 | tee build.log
           exit "${PIPESTATUS[0]}"
@@ -200,7 +213,7 @@ jobs:
                                open(rpts[0], errors='replace').read(), re.M)
 
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as s:
-              s.write(f'## {core} / {board}\n\n')
+              s.write(f'## {core} / {board} / {os.environ["TANGCORE_VARIANT"]}\n\n')
               s.write('Timing: ' + (', '.join(f'{k} violated endpoints: {v}' for k, v in viol.items())
                                    or 'not found') + '\n\n')
               if fmax:
@@ -223,10 +236,12 @@ jobs:
           cp core-src/build.log dist/build.log 2>/dev/null
           bin=$(ls core-src/impl/pnr/*.bin 2>/dev/null | head -n1)
           # rename to the file name TangCore's firmware looks for on the SD card
-          [ -n "$bin" ] && cp "$bin" "dist/$CORE.bin"
+          name=$CORE
+          [ "$TANGCORE_VARIANT" = hz120 ] && name=${CORE}_120hz
+          [ -n "$bin" ] && cp "$bin" "dist/$name.bin"
           # the Gowin .fs next to it, for openFPGALoader over JTAG (tangcore#6)
           fs=$(ls core-src/impl/pnr/*.fs 2>/dev/null | head -n1)
-          [ -n "$fs" ] && cp "$fs" "dist/$CORE.fs"
+          [ -n "$fs" ] && cp "$fs" "dist/$name.fs"
           # reports, for context when a build fails
           cp core-src/impl/pnr/*.rpt.txt core-src/impl/pnr/*.tr \
              core-src/impl/pnr/*_tr_content.html core-src/impl/pnr/*.tr.html dist/ 2>/dev/null
@@ -236,7 +251,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ env.CORE }}-${{ env.BOARD }}
+          name: ${{ env.CORE }}-${{ env.BOARD }}${{ inputs.variant != 'standard' && format('-{0}', inputs.variant) || '' }}
           path: dist/
           if-no-files-found: warn
           retention-days: 30
