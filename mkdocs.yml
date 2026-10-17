@@ -73,6 +73,7 @@ nav:
     - Controllers: user-guide/controllers.md
     - GBA: user-guide/gba.md
     - PC/XT: user-guide/pcxt.md
+    - USB debug console: user-guide/debug-console.md
     - Troubleshooting: user-guide/troubleshooting.md
   - Developer Guide:
     - Architecture: dev-guide/architecture.md

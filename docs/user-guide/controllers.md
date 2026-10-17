@@ -18,3 +18,105 @@ Here are some test results for controllers.
 
 My personal favorite is the 8BitDo wireless adapter paired with an 8BitDo Pro 2 controller. It offers excellent button layout, reliable wireless connectivity, and minimal input lag. Please note that each adapter can only pair with one controller, so you'll need two adapters for two-player gaming.
 
+
+## Ports
+
+The two bottom USB-A ports are wired to the FPGA and support low-speed HID controllers only, such as simple USB SNES-style pads. The **left** one is player 1 and the **right** one is player 2. Most NES, SNES and Genesis games only respond to player 1, so plug a single pad into the left port. Game Boy Advance reads both ports as its one player. If a pad stops answering, the FPGA resets the port and sets the pad up again by itself in about 0.5 s; unplugging is not needed.
+
+The BL616 USB-C port (the one used for flashing, not the power port) is wired to the BL616 MCU. With a USB-C OTG adapter or a hub it works with full-speed USB controllers, including Xbox 360-style (XInput) wired controllers, up to 2 XInput pads.
+
+## In-game controls
+
+| Action | How |
+|---|---|
+| Open the game menu | Press **Select + Start + L** together. |
+| Back to the game | Press **Select + Start + L** again, or choose **Resume**. |
+| Close the game | Hold **Select + Start + R** for 3 seconds (by default), or choose **Close game** in the game menu. |
+| Restart everything | Press **MODE** on the console. It reloads the FPGA from its flash (the menu core) and restarts the firmware; a short press is enough. |
+
+The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< Main menu**. On PC/XT it also has **Floppy drives**. Games with a sunlight sensor (Boktai 1/2/3) also have **Solar**. **Game options** and **Save states** are shown but not available yet. **<< Main menu** keeps the game loaded, and the main menu then shows a **Game menu** item that leads back to it. On a USB keyboard, **F12** opens the game menu too.
+
+## Video
+
+The HDMI output runs at each console's own refresh rate: Game Boy Advance 59.75 Hz, MegaDrive/Genesis and Master System 59.93 Hz. NES, SNES and the menu itself run at standard 60.00 Hz. There is no rate selector.
+
+**Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Smoothing**. Changes reach the game at once and are stored when you leave a screen. Each screen has a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
+
+The settings apply to every core. They need the core .bin files from the same TangCore release; older cores ignore them. PC/XT has none of them.
+
+### Scanlines
+
+**Scanlines...** darkens thin lines between the lines of the game's picture, for a CRT look. Changes reach the game at once and are stored when you leave the screen.
+
+* **Scanlines** — ON/OFF, off by default.
+* **Darkness** — 25 %, 50 %, 75 % (the default) or 100 % (black).
+* **Lines** — Thin or Thick.
+* **Scale** — **Integer** makes every line of the game the same height on the TV, so the scanlines are evenly spaced; the picture gets a little smaller, with a border above and below. **Full** keeps the full-size picture and puts the lines at a fixed spacing on the TV; on Game Boy Advance and Master System they then don't line up with the game's lines.
+* **Preview** — **Left/Right** changes the darkness, **Up/Down** the line thickness, **Start** the scale and **Select** turns them on or off.
+
+### Color
+
+* **Brightness**, **Contrast**, **Saturation** — from -4 to +3, 0 (the default) leaves the picture as the game draws it. Saturation -4 is black and white.
+* **Gamma** — **Off**, **Darker**, **Brighter** or **CRT** (slightly darker mid-tones, like a CRT TV).
+* **Reset colors** — puts all four back to their defaults.
+* **Preview** — **Left/Right** changes the brightness, **Up/Down** the contrast, **Select** the saturation and **Start** the gamma.
+
+### CRT mask
+
+Imitates the pattern of red, green and blue stripes or dots on a CRT screen.
+
+* **Mask** — **Off** (the default), **Grille** (vertical stripes), **Slot** (stripes broken into slots) or **Dot**.
+* **Strength** — 1 to 4. A stronger mask makes the picture darker; raise **Brightness** under **Color...** to make up for it.
+* **Preview** — **Left/Right** changes the strength, **Up/Down** the mask.
+
+### Smoothing
+
+**Smoothing** in the Video menu changes how the game's pixels are stretched to the TV:
+
+* **Off** (the default) — every game pixel becomes a block of TV pixels. Most games are stretched by an uneven amount, so some pixels end up one TV pixel wider or taller than others.
+* **Sharp** — blends only the TV pixels that fall on the edge between two game pixels, so every game pixel looks the same size and the picture stays crisp.
+* **Soft** — blends neighbouring game pixels across their whole width, for a smoother, slightly blurry picture.
+
+Choosing the item steps through Off, Sharp and Soft; the change is visible as soon as you close the menu.
+
+### LCD grid
+
+On Game Boy Advance and Game Gear, draws the thin gaps between the pixels of a handheld's LCD screen. With the grid on, the picture uses the integer scale (see **Scale** above), even with scanlines off.
+
+* **Grid** — ON/OFF, off by default.
+* **Strength** — 1 to 4.
+* **Preview** — **Left/Right** changes the strength, **Up/Down** turns the grid on or off.
+
+## Options
+
+The two button combinations can be changed under **Options** in the main menu:
+
+1. Select **Menu** or **Reset**.
+2. Hold the 3 buttons you want, all at once, for about a second, until "got it" appears.
+3. Select **Save**.
+
+A combination must be exactly 3 buttons and include **Select** or **Start**, so it can't go off by accident during play.
+
+**Options** has these items:
+
+* **Menu** — the button combination that opens the game menu.
+* **Reset** — the button combination that resets the game. Keep holding it for **Hold to close** and the game closes.
+* **Reset combo** — ON/OFF, turns the Reset combination on or off.
+* **Hold to close** — how long the Reset combination must be held to close the game, from 2 to 5 seconds.
+* **Diagnostics** — ON/OFF, shows a diagnostic line on the top row of menus, see [troubleshooting](troubleshooting.md).
+* **Pause in game menu** — ON/OFF, on by default. While any menu is shown over a running game (the game menu, the main menu or Options), the game is paused and silent. It continues when you choose **Resume**. With it off, the game keeps running behind the menu. Either way the game never receives button presses while a menu is shown. Game Boy Advance, MegaDrive/Genesis and Master System pause; NES, SNES and PC/XT keep running.
+* **Date & time** — the console clock, for example `2026-10-13 12:34`. It opens a field editor (see below). Games with a real-time clock read this clock.
+* **Flash mode...** — restarts the console ready to be flashed on the BL616 USB-C port.
+* **USB debug console** — ON/OFF, off by default. Streams the firmware log to a PC and takes commands, see the [USB debug console](debug-console.md) page.
+* **Save debug log** — writes the log kept in RAM to `tangcore/debuglog.txt`.
+* **Save** — applies the changes and stores them.
+* **<< Back** — leaves without saving.
+
+### Date & time
+
+The console has no battery-backed clock, so the clock is kept in software. It runs while the console is on, including across a MODE press, and stands still while the console is off. It is stored whenever settings are saved and every few minutes while idle in the menu. If the clock was never set it runs from 2000-01-01, so time-based events still advance within a session.
+
+The editor shows Year, Month, Day, Hour and Minute. **Up/Down** picks the field, **Left/Right** changes it, **A** saves (seconds restart at 0), **B** cancels.
+
+The changes take effect when you choose **Save**. They are saved to `tangcore.cfg` in the root of the SD card or USB drive. You can also edit that file directly, for example `menu_combo=SELECT+START+L`, `pause_in_menu=0` or the video settings `scanlines=1`, `scanline_darkness=75`, `scanline_thick=0`, `scanline_full=0`, `video_brightness=0`, `video_contrast=0`, `video_saturation=0`, `video_gamma=0` (0 off, 1 darker, 2 brighter, 3 CRT), `crt_mask=0` (0 off, 1 grille, 2 slot, 3 dot), `crt_mask_strength=1`, `lcd_grid=0`, `lcd_grid_strength=1` (strengths go from 0 to 3, shown as 1 to 4), `smoothing=0` (0 off, 1 sharp, 2 soft) and `solar_pct=50` (Boktai sunlight, 0 to 100).
+
