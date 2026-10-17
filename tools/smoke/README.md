@@ -19,7 +19,7 @@ docs live here under `tools/smoke/`.
 
 ```sh
 sh tools/smoke/smoke.sh --tag <run-tag> [--nes REF] [--snes REF] [--gba REF] \
-    [--md REF] [--sms REF] [--jobs N] [--accept]
+    [--md REF] [--sms REF] [--jobs N] [--short] [--accept]
 ```
 
 Refs default to the round-5 integration heads. Each ref is any git ref of
@@ -29,6 +29,9 @@ core fresh, builds the five models in docker, runs all games (up to
 cores; a GBA run uses ~4 threads), and writes a dated report to
 `~/tangcore-smoke/runs/<date>-<tag>/REPORT.md` against the stored
 baseline. The first reviewed run takes `--accept` to become the baseline.
+`--short` runs routine depth (NES 900 / SNES 600 / GBA 400 / MD 450 /
+SMS 300 frames); full depth (1800/1200/1250/900/600) is for pre-QA
+weekends — the GBA leg dominates either way (see Known limits).
 
 Game list: NES (SMB3, Zelda, Rockman 3/4); SNES (Zelda, SMW, Star Fox,
 Yoshi's Island, Mario Kart); GBA (all six local ROMs); Genesis (Sonic 2,

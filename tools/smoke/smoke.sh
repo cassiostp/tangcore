@@ -27,6 +27,7 @@ MD_REF=73c3147
 SMS_REF=5159ae1
 JOBS=4
 ACCEPT=0
+SHORT=0
 while [ $# -gt 0 ]; do
   case $1 in
     --tag) TAG=$2; shift 2;;
@@ -37,10 +38,15 @@ while [ $# -gt 0 ]; do
     --sms) SMS_REF=$2; shift 2;;
     --jobs) JOBS=$2; shift 2;;
     --accept) ACCEPT=1; shift;;
+    --short) SHORT=1; shift;;
     *) echo "unknown arg $1"; exit 1;;
   esac
 done
 test -n "$TAG" || { echo "--tag required"; exit 1; }
+# --short: routine regression depth (GBA still clears the ~65-frame PSG
+# onset with margin). Full depth is for pre-QA weekends.
+if [ "$SHORT" = 1 ]; then F_NES=900; F_SNES=600; F_GBA=400; F_MD=450; F_SMS=300;
+else F_NES=1800; F_SNES=1200; F_GBA=1250; F_MD=900; F_SMS=600; fi
 
 SMOKE_ROOT=${SMOKE_ROOT:-$HOME/tangcore-smoke}
 ROMS=${SMOKE_ROMS:-$HOME/tangcore-test-bundle/test roms}
@@ -112,29 +118,29 @@ run_bg() { # run_bg <log> <cmd...>
 SN=$SDIR/snes/run_game.sh; NE=$SDIR/nes/run_game.sh
 GB=$SDIR/gba/run_game.sh; MD=$SDIR/md/run_game.sh; SM=$SDIR/sms/run_game.sh
 # NES (1800 frames = 30 s)
-run_bg "$OUT/run-nes.log" sh "$NE" "nes-$TAG" smb3 "$ROMS/NES/Super Mario Bros. 3 (USA) (Rev 1).nes" 1800 "$OUT/nes"
-run_bg "$OUT/run-nes2.log" sh "$NE" "nes-$TAG" zelda "$ROMS/NES/Legend of Zelda, The (USA) (Rev 1).nes" 1800 "$OUT/nes"
-run_bg "$OUT/run-nes3.log" sh "$NE" "nes-$TAG" rockman3 "$ROMS/NES/Rockman 3 - Dr. Wily no Saigo! (Japan).nes" 1800 "$OUT/nes"
-run_bg "$OUT/run-nes4.log" sh "$NE" "nes-$TAG" rockman4 "$ROMS/NES/Rockman 4 - Aratanaru Yabou!! (Japan).nes" 1800 "$OUT/nes"
+run_bg "$OUT/run-nes.log" sh "$NE" "nes-$TAG" smb3 "$ROMS/NES/Super Mario Bros. 3 (USA) (Rev 1).nes" $F_NES "$OUT/nes"
+run_bg "$OUT/run-nes2.log" sh "$NE" "nes-$TAG" zelda "$ROMS/NES/Legend of Zelda, The (USA) (Rev 1).nes" $F_NES "$OUT/nes"
+run_bg "$OUT/run-nes3.log" sh "$NE" "nes-$TAG" rockman3 "$ROMS/NES/Rockman 3 - Dr. Wily no Saigo! (Japan).nes" $F_NES "$OUT/nes"
+run_bg "$OUT/run-nes4.log" sh "$NE" "nes-$TAG" rockman4 "$ROMS/NES/Rockman 4 - Aratanaru Yabou!! (Japan).nes" $F_NES "$OUT/nes"
 # SNES (1200 frames = 20 s; CX4/SA-1 games cannot boot in Verilator: skipped)
-run_bg "$OUT/run-snes.log" sh "$SN" "snes-$TAG" zelda "$ROMS/SNES/Legend of Zelda, The - A Link to the Past (USA).sfc" 1200 "$OUT/snes"
-run_bg "$OUT/run-snes2.log" sh "$SN" "snes-$TAG" smw "$ROMS/SNES/Super Mario World (U) [!].smc" 1200 "$OUT/snes"
-run_bg "$OUT/run-snes3.log" sh "$SN" "snes-$TAG" starfox "$ROMS/SNES/Star Fox (USA) (Rev 2).sfc" 1200 "$OUT/snes"
-run_bg "$OUT/run-snes4.log" sh "$SN" "snes-$TAG" yoshi "$ROMS/SNES/Super Mario World 2 - Yoshi's Island (U) (V1.1).smc" 1200 "$OUT/snes"
-run_bg "$OUT/run-snes5.log" sh "$SN" "snes-$TAG" mariokart "$ROMS/SNES/Super Mario Kart (USA).sfc" 1200 "$OUT/snes"
+run_bg "$OUT/run-snes.log" sh "$SN" "snes-$TAG" zelda "$ROMS/SNES/Legend of Zelda, The - A Link to the Past (USA).sfc" $F_SNES "$OUT/snes"
+run_bg "$OUT/run-snes2.log" sh "$SN" "snes-$TAG" smw "$ROMS/SNES/Super Mario World (U) [!].smc" $F_SNES "$OUT/snes"
+run_bg "$OUT/run-snes3.log" sh "$SN" "snes-$TAG" starfox "$ROMS/SNES/Star Fox (USA) (Rev 2).sfc" $F_SNES "$OUT/snes"
+run_bg "$OUT/run-snes4.log" sh "$SN" "snes-$TAG" yoshi "$ROMS/SNES/Super Mario World 2 - Yoshi's Island (U) (V1.1).smc" $F_SNES "$OUT/snes"
+run_bg "$OUT/run-snes5.log" sh "$SN" "snes-$TAG" mariokart "$ROMS/SNES/Super Mario Kart (USA).sfc" $F_SNES "$OUT/snes"
 # GBA (1250 frames)
-run_bg "$OUT/run-gba.log" sh "$GB" "gba-$TAG" aria "$ROMS/GBA/Castlevania - Aria of Sorrow (USA).gba" 1250 "$OUT/gba"
-run_bg "$OUT/run-gba2.log" sh "$GB" "gba-$TAG" minish "$ROMS/GBA/Legend of Zelda, The - The Minish Cap (USA).gba" 1250 "$OUT/gba"
-run_bg "$OUT/run-gba3.log" sh "$GB" "gba-$TAG" firered "$ROMS/GBA/Pokemon - FireRed Version (USA, Europe) (Rev 1).gba" 1250 "$OUT/gba"
-run_bg "$OUT/run-gba4.log" sh "$GB" "gba-$TAG" zero "$ROMS/GBA/Metroid - Zero Mission (USA).gba" 1250 "$OUT/gba"
-run_bg "$OUT/run-gba5.log" sh "$GB" "gba-$TAG" kirby "$ROMS/GBA/Kirby & The Amazing Mirror (USA).gba" 1250 "$OUT/gba"
-run_bg "$OUT/run-gba6.log" sh "$GB" "gba-$TAG" mario "$ROMS/GBA/Mario & Luigi - Superstar Saga (USA).gba" 1250 "$OUT/gba"
+run_bg "$OUT/run-gba.log" sh "$GB" "gba-$TAG" aria "$ROMS/GBA/Castlevania - Aria of Sorrow (USA).gba" $F_GBA "$OUT/gba"
+run_bg "$OUT/run-gba2.log" sh "$GB" "gba-$TAG" minish "$ROMS/GBA/Legend of Zelda, The - The Minish Cap (USA).gba" $F_GBA "$OUT/gba"
+run_bg "$OUT/run-gba3.log" sh "$GB" "gba-$TAG" firered "$ROMS/GBA/Pokemon - FireRed Version (USA, Europe) (Rev 1).gba" $F_GBA "$OUT/gba"
+run_bg "$OUT/run-gba4.log" sh "$GB" "gba-$TAG" zero "$ROMS/GBA/Metroid - Zero Mission (USA).gba" $F_GBA "$OUT/gba"
+run_bg "$OUT/run-gba5.log" sh "$GB" "gba-$TAG" kirby "$ROMS/GBA/Kirby & The Amazing Mirror (USA).gba" $F_GBA "$OUT/gba"
+run_bg "$OUT/run-gba6.log" sh "$GB" "gba-$TAG" mario "$ROMS/GBA/Mario & Luigi - Superstar Saga (USA).gba" $F_GBA "$OUT/gba"
 wait
 # Genesis (900 frames) + SMS homebrew (600 frames)
-run_bg "$OUT/run-md.log" sh "$MD" "md-$TAG" sonic2 "$ROMS/Genesis/Sonic The Hedgehog 2 (World) (Rev A).md" 900 "$OUT/md"
-run_bg "$OUT/run-md2.log" sh "$MD" "md-$TAG" ps2 "$ROMS/Genesis/Phantasy Star II (USA, Europe) (Rev A).md" 900 "$OUT/md"
-run_bg "$OUT/run-sms.log" sh "$SM" "sms-$TAG" hello "$SMSROM" 600 "$OUT/sms"
-run_bg "$OUT/run-sms2.log" sh "$SM" "sms-$TAG" smsaudio "$SMSAUD" 600 "$OUT/sms"
+run_bg "$OUT/run-md.log" sh "$MD" "md-$TAG" sonic2 "$ROMS/Genesis/Sonic The Hedgehog 2 (World) (Rev A).md" $F_MD "$OUT/md"
+run_bg "$OUT/run-md2.log" sh "$MD" "md-$TAG" ps2 "$ROMS/Genesis/Phantasy Star II (USA, Europe) (Rev A).md" $F_MD "$OUT/md"
+run_bg "$OUT/run-sms.log" sh "$SM" "sms-$TAG" hello "$SMSROM" $F_SMS "$OUT/sms"
+run_bg "$OUT/run-sms2.log" sh "$SM" "sms-$TAG" smsaudio "$SMSAUD" $F_SMS "$OUT/sms"
 wait
 echo RUN_ALL_OK
 
