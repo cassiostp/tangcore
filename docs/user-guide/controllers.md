@@ -38,7 +38,7 @@ The game menu has **Resume**, **Reset**, **Video...**, **Close game** and **<< M
 
 ## Video
 
-The HDMI output runs at each console's own refresh rate: Game Boy Advance 59.75 Hz, MegaDrive/Genesis and Master System 59.93 Hz. NES, SNES and the menu itself run at standard 60.00 Hz. **Display** under **Options** in the main menu switches the games to 120 Hz (480p): the picture then runs at twice the console's own rate, from a separate `<core>_120hz.bin` next to the 60 Hz `<core>.bin` in `cores/console138k` (see [installation](installation.md)). The monitor must accept 480p at about 120 Hz. The 120 Hz builds run on the Console 138K.
+The HDMI output runs at each console's own refresh rate: NES and SNES 60.11 Hz, MegaDrive/Genesis and Master System 59.93 Hz, Game Boy Advance 59.75 Hz. The menu itself runs at standard 60.00 Hz. **Display** under **Options** in the main menu switches the games to 120 Hz (480p): the picture then runs at twice the console's own rate, from a separate `<core>_120hz.bin` next to the 60 Hz `<core>.bin` in `cores/console138k` (see [installation](installation.md)). The monitor must accept 480p at about 120 Hz. The 120 Hz builds run on the Console 138K.
 
 **Video...** in the game menu changes how the picture looks. It has **Scanlines...**, **Color...**, **CRT mask...**, on Game Boy Advance and Game Gear **LCD grid...**, and **Scale**. While a 120 Hz build runs it also has **BFI**. Changes reach the game at once and are stored when you leave a screen. Scanlines, Color, CRT mask and LCD grid each have a **Preview** that hides the menu over the game, so you can see the result; **A** or **B** goes back. **A** on **Scale** switches it between Full and Integer. The game stays paused during a preview, except on SNES and MegaDrive/Genesis, where it keeps running but gets no button presses.
 
@@ -94,7 +94,7 @@ On Game Boy Advance and Game Gear, draws the thin gaps between the pixels of a h
 
 The game menu is never blanked: it stays lit on every refresh, in every mode.
 
-At 120 Hz the game picture stays centred: NES and SNES show 640×448, MegaDrive/Genesis an integer 2× picture, Master System 512×384 (2×) and Game Gear 480×432 (3×), Game Boy Advance an integer 3× picture filling the 720×480 frame.
+At 120 Hz, **Scale** works as at 60 Hz. **Full** fills a 4:3 640×480 picture on NES, SNES, MegaDrive/Genesis and Master System, and 533×480 on Game Gear. **Integer** centres an exact multiple: 640×448 (2×) on NES, SNES and MegaDrive/Genesis, 512×384 (2×) on Master System and 480×432 (3×) on Game Gear. Game Boy Advance always shows a 3× picture that fills the whole 720×480 frame.
 
 ## Options
 

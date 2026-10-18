@@ -27,7 +27,7 @@ The 120 Hz builds run the same interface in 480p mode (VIC 48, 54 MHz pixel cloc
 | MegaDrive/Genesis / Master System | 858×525 | 119.88 Hz | 59.94 Hz |
 | Game Boy Advance | 861×525 | 119.46 Hz | 59.73 Hz |
 
-CI builds the 120 Hz bitstream with `-f variant=hz120`, which saves `<core>_120hz.bin` in the `<core>-<board>-hz120` artifact; the firmware loads that file when **Display** is 120 Hz. The 120 Hz builds are made for the Console 138K only.
+Both bitstreams come from one source tree. `build.tcl` reads the `TANGCORE_VARIANT` environment variable (`standard`, the default, or `hz120`) and picks the matching `variant.vh` (by include path, or by copying it into the source tree on gbatang), which defines `HZ120` for the 120 Hz build; the RTL selects with `` `ifdef HZ120 ``, so the standard build is unchanged by the 120 Hz code. CI builds the 120 Hz bitstream with `-f variant=hz120`, which saves `<core>_120hz.bin` in the `<core>-<board>-hz120` artifact; the firmware loads that file when **Display** is 120 Hz. The 120 Hz builds are made for the Console 138K only.
 
 Please [file an issue](https://github.com/nand2mario/tangcore/issues) if you met issues in building your core.
 
