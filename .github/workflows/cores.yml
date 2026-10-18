@@ -42,6 +42,7 @@ concurrency:
 
 env:
   GOWIN_VERSION: 1.9.11.03
+  GOWIN_SHA256: 6fd392f7473b24d847b6f8ebdc7a185c591826ba35d8d0e517961030d446f9f7
 
 jobs:
   build:
@@ -101,9 +102,16 @@ jobs:
           rm -rf "$HOME/gowin"
           # The vendor CDN answers 403 (ua-black) to default curl/wget
           # user-agents, so pose as a browser. ~680 MB.
-          curl -fSL --retry 5 --retry-delay 15 -o /tmp/gowin.tar.gz \
-            -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' \
-            "https://cdn.gowinsemi.com.cn/Gowin_V${GOWIN_VERSION}_Education_Linux.tar.gz"
+          url="https://cdn.gowinsemi.com.cn/Gowin_V${GOWIN_VERSION}_Education_Linux.tar.gz"
+          ua='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          # The vendor CDN has answered 404 since late 2026; fall back to the
+          # Internet Archive's capture of the same URL. Either way the
+          # tarball must match the known checksum (also in the AUR
+          # gowin-eda-edu PKGBUILD).
+          curl -fSL --retry 5 --retry-delay 15 -o /tmp/gowin.tar.gz -A "$ua" "$url" ||
+            curl -fSL --retry 5 --retry-delay 15 -o /tmp/gowin.tar.gz -A "$ua" \
+              "https://web.archive.org/web/20251217122345/$url"
+          echo "$GOWIN_SHA256  /tmp/gowin.tar.gz" | sha256sum -c
           mkdir -p "$HOME/gowin"
           tar -zxf /tmp/gowin.tar.gz -C "$HOME/gowin"
           rm -f /tmp/gowin.tar.gz
