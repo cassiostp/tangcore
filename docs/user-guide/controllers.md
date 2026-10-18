@@ -94,7 +94,7 @@ On Game Boy Advance and Game Gear, draws the thin gaps between the pixels of a h
 
 The game menu is never blanked: it stays lit on every refresh, in every mode.
 
-At 120 Hz, **Scale** works as at 60 Hz. **Full** fills a 4:3 640×480 picture on NES, SNES, MegaDrive/Genesis and Master System, and 533×480 on Game Gear. **Integer** centres an exact multiple: 640×448 (2×) on NES, SNES and MegaDrive/Genesis, 512×384 (2×) on Master System and 480×432 (3×) on Game Gear. Game Boy Advance always shows a 3× picture that fills the whole 720×480 frame.
+At 120 Hz, **Scale** works as at 60 Hz. **Full** fills a 4:3 640×480 picture on NES, SNES, MegaDrive/Genesis and Master System, and 533×480 on Game Gear. **Integer** gives every game line two TV lines, centred: 640×448 on NES, SNES and MegaDrive/Genesis (512×448 in the Genesis' 256-pixel-wide mode) and 512×384 on Master System; Game Gear gets three, 480×432. Game Boy Advance always shows a 3× picture that fills the whole 720×480 frame.
 
 ## Options
 
