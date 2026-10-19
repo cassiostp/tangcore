@@ -70,7 +70,8 @@ gh workflow run sims.yml -R cassiostp/tangcore --ref ci/sim-tests -f core=all -f
 
 **Local simulations:**
 - Each bench in a core's `sim/` has a `run.sh`; the larger ones also have a README, and the repository's own `AGENTS.md` lists them.
-- iverilog runs in the local arm64 image `tangcore-iv:1` (Icarus 12); Verilator runs in `verilator/verilator`. Each script/Makefile picks its runner once (`DOCKER_RUN`: the `simrun` helper when it is on PATH, else `docker run --rm`) and namespaces container names with `SIM_PREFIX` (default `sim<PID>`) so parallel runs cannot clash; Verilator builds go through ccache when `simrun` provides its persistent `/ccache`. `simrun` is an optional local helper, not part of the repositories. Run sims as `$DOCKER_RUN --name ${SIM_PREFIX:-sim$$}_<yourtask>_<bench> --user $(id -u):$(id -g) ...`, so outputs aren't root-owned.
+- iverilog runs in the local arm64 image `tangcore-iv:1` (Icarus 12); Verilator runs in `verilator/verilator`. Run them as `docker run --rm --name <yourtask>_<bench> --user $(id -u):$(id -g) ...`, so outputs aren't root-owned.
+- The sim scripts start their containers through `$DOCKER_RUN`: `simrun` when it's on the PATH (an optional local helper that adds a persistent ccache volume and full parallelism; it isn't part of these repositories), plain `docker run --rm` otherwise. Set `SIM_PREFIX=<yourtask>` so their container names are yours and parallel runs don't clash.
 - `hdlc/iverilog` is amd64-only and doesn't run here.
 
 **GitHub gotchas:**
