@@ -36,8 +36,9 @@ run appends `START`/`END` lines to `<out>/timeline.log` so the peak
 overlap can be checked. Slots are per game run, not per thread: a GBA
 model is built `--threads 4`, so one GBA run can occupy ~4 threads and
 peak load is roughly 4x(concurrent GBA runs) + 1x(the rest) — keep
-`--jobs` at most half the machine's cores. Every model process and every
-build container runs under `nice -n 19`.
+`--jobs` at most half the machine's cores. Build containers run through
+`$DOCKER_RUN` (the `simrun` helper when it is on PATH, else plain
+`docker run --rm`), with ccache on under `simrun`.
 `--short` runs routine depth (NES 900 / SNES 600 / GBA 400 / MD 450 /
 SMS 300 frames); full depth (1800/1200/1250/900/600) is for pre-QA
 weekends — the GBA leg dominates either way (see Known limits).
@@ -49,7 +50,8 @@ see below). CX4 games (Mega Man X3) and SA-1 games (Kirby Super Star,
 Bomberman 5) cannot boot in Verilator (their RTL is VHDL) and are skipped
 in sim; their coverage is hardware QA.
 
-Containers are all named `smoke_*`. Sim-only build patches (display
+Containers are all named `${SIM_PREFIX:-sim<PID>}_smoke_*`: set `SIM_PREFIX`
+when sharing the machine so two runs cannot clash. Sim-only build patches (display
 neutralization, joypad shims, suite-max loader arrays) are documented
 below; none change simulated behavior.
 

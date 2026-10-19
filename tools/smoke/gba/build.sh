@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build one GBA smoke model at a given ref.
 # Usage: build.sh <TAG> <SRCDIR>
-# Env: SMOKE_BUILD (model root, default ./build), JOBS (default 4).
+# Env: SMOKE_BUILD (model root, default ./build), JOBS (default $(nproc)).
 # Run inside the verilator docker image. The produced binary runs on the
 # host (single process, --threads 4 at sim time). Adapted from the QA4
 # gbaaudio probe (same fast SDRAM-poke ROM load, same per-frame aggregates).
@@ -9,7 +9,7 @@ set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
-JOBS=${JOBS:-4}
+JOBS=${JOBS:-$(nproc)}
 B=$BLD/gba/$TAG
 R=$SRC
 mkdir -p "$B/obj" "$B/run"

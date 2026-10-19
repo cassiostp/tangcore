@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build one SMS smoke model at a given ref.
 # Usage: build.sh <TAG> <SRCDIR>
-# Env: SMOKE_BUILD (model root, default ./build), JOBS (default 8).
+# Env: SMOKE_BUILD (model root, default ./build), JOBS (default $(nproc)).
 # Run inside the verilator docker image. Source list from
 # verilator/Makefile (upstream), sim_main.cpp replaced by tb_smoke_sms.cpp,
 # stale verilog test_loader.v dropped (its instantiation is commented out;
@@ -10,7 +10,7 @@ set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
-JOBS=${JOBS:-8}
+JOBS=${JOBS:-$(nproc)}
 B=$BLD/sms/$TAG
 R=$SRC
 mkdir -p "$B/obj"

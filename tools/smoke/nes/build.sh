@@ -2,7 +2,7 @@
 # Build one NES smoke model at a given ref.
 # Usage: build.sh <TAG> <SRCDIR>
 # Env: SMOKE_BUILD (model root, default ./build), SMOKE_NES_MAXSIZE
-#   (GameData array size, default 524304 = suite max +16), JOBS (default 10).
+#   (GameData array size, default 524304 = suite max +16), JOBS (default $(nproc)).
 # Run inside the verilator docker image. The produced binary runs on the host.
 # The model matches the 138K hardware config (+define+MEGA138K for the VRC
 #-family ext-audio path); VRC7 FM uses the sim stub (silent in sim, as in
@@ -12,7 +12,7 @@ SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
 MAXS=${SMOKE_NES_MAXSIZE:-524304}
-JOBS=${JOBS:-10}
+JOBS=${JOBS:-$(nproc)}
 B=$BLD/nes/$TAG
 R=$SRC
 mkdir -p "$B/obj" "$B/gen"
