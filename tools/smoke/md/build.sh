@@ -1,14 +1,14 @@
 #!/bin/sh
 # Build one Genesis smoke model at a given ref.
 # Usage: build.sh <TAG> <SRCDIR>
-# Env: SMOKE_BUILD (model root, default ./build), JOBS (default 8).
+# Env: SMOKE_BUILD (model root, default ./build), JOBS (default $(nproc)).
 # Run inside the verilator docker image. Source list from
 # verilator/Makefile (upstream), sim_main.cpp replaced by tb_smoke_md.cpp.
 set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
-JOBS=${JOBS:-8}
+JOBS=${JOBS:-$(nproc)}
 B=$BLD/md/$TAG
 R=$SRC
 mkdir -p "$B/obj"

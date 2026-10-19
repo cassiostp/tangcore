@@ -29,7 +29,7 @@ done
 DUMPS=$(python3 -c "print(','.join(str(f) for f in [60,300,600,900,1200,1800] if f <= $FRAMES))")
 echo "game=$GAME frames=$FRAMES dumps=$DUMPS"
 T0=$(date +%s)
-(cd "$OUT" && nice -n 19 "$B/obj/obj/Vgbatang_smoke" "$ROM" "$FRAMES" "$GAME" "$DUMPS" >"$GAME.stdout" 2>"$GAME.stderr")
+(cd "$OUT" && "$B/obj/obj/Vgbatang_smoke" "$ROM" "$FRAMES" "$GAME" "$DUMPS" >"$GAME.stdout" 2>"$GAME.stderr")
 T1=$(date +%s)
 # normalize names to the suite convention (<game>.log already; .aud already)
 echo "RUN_OK game=$GAME frames=$FRAMES wall=$((T1 - T0))s"

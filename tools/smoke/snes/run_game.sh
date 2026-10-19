@@ -38,6 +38,6 @@ MCLK=$((FRAMES * 357380 + 20000000))
 DUMPS=$(python3 -c "print(','.join(str(f) for f in [60,300,600,900,1200,1800,2400,3600] if f <= $FRAMES))")
 echo "mclk budget: $MCLK dumps: $DUMPS"
 T0=$(date +%s)
-(cd "$R" && nice -n 19 "$B/obj/obj/Vsnestang_smoke" -m "$MCLK" -o "$OUT/$GAME" -i "$SCRIPT" -d "$DUMPS" >"$OUT/$GAME.stdout" 2>"$OUT/$GAME.stderr")
+(cd "$R" && "$B/obj/obj/Vsnestang_smoke" -m "$MCLK" -o "$OUT/$GAME" -i "$SCRIPT" -d "$DUMPS" >"$OUT/$GAME.stdout" 2>"$OUT/$GAME.stderr")
 T1=$(date +%s)
 echo "RUN_OK game=$GAME frames=$FRAMES wall=$((T1 - T0))s"

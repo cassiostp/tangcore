@@ -3,7 +3,7 @@
 # Usage: sh build.sh <TAG> <SRCDIR>
 #   TAG: e.g. round5, qa4. SRCDIR: snestang checkout at the wanted ref.
 # Env: SMOKE_BUILD (model root, default ./build), SMOKE_SNES_MAXSIZE
-#   (loader array size, default 4194816 = 4MB suite max), JOBS (default 10).
+#   (loader array size, default 4194816 = 4MB suite max), JOBS (default $(nproc)).
 # Run inside the verilator docker image (see smoke.sh); the produced binary
 # runs on the host (arm64).
 # The model carries the smoke joypad shim (tb_joy1) and CHIP_GSU, matching
@@ -14,7 +14,7 @@ SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
 MAXS=${SMOKE_SNES_MAXSIZE:-4194816}
-JOBS=${JOBS:-10}
+JOBS=${JOBS:-$(nproc)}
 B=$BLD/snes/$TAG
 R=$SRC
 mkdir -p "$B/obj" "$B/gen"
