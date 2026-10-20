@@ -64,11 +64,11 @@ The core runs games with DSP-1/2/3/4, S-RTC and OBC-1. Daikaijuu Monogatari II u
 
 Cartridges with S-DD1 (Star Ocean, Street Fighter Alpha 2), SPC7110, ST018 or BS-X show a "<chip> cartridge not supported yet" message and return to the browser. Dismiss it with **A**, **B** or **START**.
 
-Super FX, SA-1 and CX4 cartridges load, but this build of the core has no such chip, so those games don't run.
+Super FX (Star Fox, Yoshi's Island), SA-1 (Kirby Super Star) and CX4 (Mega Man X2/X3) games run on the Console 138K. The Console 60K build has no room for these chips, so those games don't run there.
 
 ## An NES game does not work
 
-The core runs games on the common mappers, including MMC1 and MMC3, Sunsoft FME-7 and Namco 163 (with its expansion sound). Konami VRC, MMC5 and FDS games do not run in this build: those mapper slots are disabled in the core.
+The core runs games on the common mappers, including MMC1 and MMC3, Sunsoft FME-7 and Namco 163 (with its expansion sound). Konami VRC (with VRC6/VRC7 sound) and MMC5 games run on the Console 60K and 138K. Famicom Disk System images aren't supported.
 
 ## A Genesis game does not work
 

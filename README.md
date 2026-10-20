@@ -56,10 +56,10 @@ On top of upstream TangCore:
     - SA-1 (Kirby Super Star, Super Mario RPG);
     - CX4 (Mega Man X2/X3);
     - S-RTC;
-    - blended hi-res text.
+    - hi-res text (Secret of Mana, RPM Racing) at full width at 60 Hz, blended at 120 Hz.
   - Genesis: 8 MB ROMs (Super Street Fighter II) and EEPROM saves.
   - GBA: the cartridge real-time clock and the Boktai solar sensor.
-  - Game Gear mode.
+  - Game Gear mode, and the Master System II's 224- and 240-line screens (Codemasters games such as Micro Machines).
 - **A wall clock** (Options → Date & time) for the games that use one.
 - **Faster loading:** GBA ROMs load about 4x faster over a negotiated 8 Mbaud link, checked by CRC.
 - **Sound fixes:**
