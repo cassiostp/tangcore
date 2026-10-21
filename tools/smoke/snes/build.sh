@@ -15,8 +15,13 @@ TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
 MAXS=${SMOKE_SNES_MAXSIZE:-4194816}
 JOBS=${JOBS:-$(nproc)}
+THREADS=${VERILATOR_THREADS:-1}
+case $THREADS in ''|*[!0-9]*|0) echo "VERILATOR_THREADS must be a positive integer" >&2; exit 2;; esac
+echo "Verilator model threads: $THREADS"
 B=$BLD/snes/$TAG
 R=$SRC
+VARIANT_INC=
+if [ -d "$R/src/variant/standard" ]; then VARIANT_INC="-I$R/src/variant/standard"; fi
 mkdir -p "$B/obj" "$B/gen"
 # patched top: joypad shim right after the VERILATOR `else line
 python3 - "$R/src/snestang_top.v" "$B/gen/snestang_top_sim.v" <<'EOF'
@@ -101,8 +106,8 @@ sed "s/@SIZE@/$MAXS/" "$SDIR/loader_smoke.v" > "$B/obj/test_loader.v"
 grep -q "localparam SIZE = $MAXS;" "$B/obj/test_loader.v"
 EXTRA="$R/src/sa1_rom_cache.v $R/src/bwram_256k.v"
 for f in $EXTRA; do test -f "$f" || EXTRA=$(echo "$EXTRA" | sed "s|$f||"); done
-verilator --top-module snestang_top --cc --exe \
-  -CFLAGS "-O2" \
+verilator $VARIANT_INC --threads "$THREADS" --top-module snestang_top --cc --exe \
+  -CFLAGS "-O2 -DTANGCORE_SIM_THREADS=$THREADS" \
   -Wno-PINMISSING -Wno-IMPLICIT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE -Wno-UNDRIVEN \
   -I"$R/src" -I"$R/src/spc700" -I"$R/src/65C816" \
   --Mdir "$B/obj/obj" --prefix Vsnestang_smoke \

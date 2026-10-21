@@ -19,6 +19,10 @@
 #include "Vmdtang_top_mdtang_top.h"
 #include "verilated.h"
 
+#ifndef TANGCORE_SIM_THREADS
+#define TANGCORE_SIM_THREADS 1
+#endif
+
 #define H_RES 320
 #define V_RES 224
 
@@ -52,6 +56,8 @@ static uint8_t scr[H_RES * V_RES * 3];
 
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
+    Verilated::threadContextp()->threads(TANGCORE_SIM_THREADS);
+    fprintf(stderr, "model threads: %u\n", Verilated::threadContextp()->threads());
     if (argc < 4) { fprintf(stderr, "usage: smoke_md <rom> <frames> <tag> [script] [dumps]\n"); return 1; }
     const char *rompath = argv[1];
     long want_frames = atol(argv[2]);

@@ -13,8 +13,13 @@ TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
 MAXS=${SMOKE_NES_MAXSIZE:-524304}
 JOBS=${JOBS:-$(nproc)}
+THREADS=${VERILATOR_THREADS:-1}
+case $THREADS in ''|*[!0-9]*|0) echo "VERILATOR_THREADS must be a positive integer" >&2; exit 2;; esac
+echo "Verilator model threads: $THREADS"
 B=$BLD/nes/$TAG
 R=$SRC
+VARIANT_INC=
+if [ -d "$R/src/variant/standard" ]; then VARIANT_INC="-I$R/src/variant/standard"; fi
 mkdir -p "$B/obj" "$B/gen"
 # patched top: joypad shim + audio tap (sample is unconsumed under VERILATOR)
 python3 - "$R/src/nestang_top.sv" "$B/gen/nestang_top_sim.sv" <<'EOF'
@@ -81,9 +86,9 @@ print("generic_sim written")
 EOF
 grep -q "localparam INES_SIZE = $MAXS;" "$B/gen/game_data_sim.v"
 cp -f "$SDIR/tb_smoke_nes.cpp" "$B/obj/"
-verilator --top-module nestang_top --cc --exe \
+verilator $VARIANT_INC --threads "$THREADS" --top-module nestang_top --cc --exe \
   +define+MEGA138K \
-  -CFLAGS "-O2" \
+  -CFLAGS "-O2 -DTANGCORE_SIM_THREADS=$THREADS" \
   -Wno-PINMISSING -Wno-IMPLICIT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE -Wno-UNDRIVEN -Wno-BLKLOOPINIT -Wno-CASEX -Wno-CASEOVERLAP \
   -I"$R/src" \
   --Mdir "$B/obj/obj" --prefix Vnestang_smoke \

@@ -33,15 +33,16 @@ become the baseline.
 `--dry-run` skips checkouts, builds and models (each game stub just
 sleeps) to exercise the limiter without ROMs, network or docker; every
 run appends `START`/`END` lines to `<out>/timeline.log` so the peak
-overlap can be checked. Slots are per game run, not per thread: a GBA
-model is built `--threads 4`, so one GBA run can occupy ~4 threads and
-peak load is roughly 4x(concurrent GBA runs) + 1x(the rest) — keep
-`--jobs` at most half the machine's cores. Build containers run through
-`$DOCKER_RUN` (the `simrun` helper when it is on PATH, else plain
-`docker run --rm`), with ccache on under `simrun`.
+overlap can be checked. Slots are per game run. `VERILATOR_THREADS` selects
+both the compiled model and its runtime thread pool; set it when building
+(or invoking the suite), and rebuild to change it. `VERILATOR_THREADS=1`
+selects the single-thread path (also the default). Size `--jobs` for the total model threads
+across concurrent games. Compiler jobs (`JOBS`) are separate. Build containers
+run through `$DOCKER_RUN` (`simrun` when present, otherwise `docker run --rm`),
+with persistent ccache under `simrun`.
 `--short` runs routine depth (NES 900 / SNES 600 / GBA 400 / MD 450 /
 SMS 300 frames); full depth (1800/1200/1250/900/600) is for pre-QA
-weekends — the GBA leg dominates either way (see Known limits).
+weekends.
 
 Game list: NES (SMB3, Zelda, Rockman 3/4); SNES (Zelda, SMW, Star Fox,
 Yoshi's Island, Mario Kart); GBA (all six local ROMs); Genesis (Sonic 2,
@@ -67,6 +68,16 @@ below; none change simulated behavior.
 - `snes/` `nes/` `md/` `sms/` `gba/` — per-core harness: `build.sh` (docker
   Verilator model at a ref), `run_game.sh` (one game on the host),
   `tb_smoke_*` (capture main), plus `make_rom.py` ROM packers (SNES/NES).
+
+## Measuring model threads
+
+Run `python3 tools/smoke/thread-bench.py <nes|snes|gba|md|sms> <core-checkout> <ROM> <new-local-output-dir> --frames 120` from the TangCore checkout.
+It builds and runs the same game with 1, 2, 4 and 8 model threads, verifies
+both the compiled count and runtime pool size, and records separate build
+and run times in `measurements.json`. Captured PPMs, complete audio, save/RAM
+dumps and per-frame logs are compared byte for byte against the single-thread
+run. A difference makes the command fail. The output directory must be new;
+keep it and every ROM-derived file local. SMS homebrew has no RAM dump.
 
 ## Per-core notes
 
