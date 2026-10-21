@@ -56,7 +56,7 @@ jobs:
     name: ${{ matrix.core }}
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30   # nestang's three-phase tb_link_soak alone takes about 15 minutes
     strategy:
       fail-fast: false
       matrix:
