@@ -1,17 +1,22 @@
 #!/bin/sh
 # Build one GBA smoke model at a given ref.
 # Usage: build.sh <TAG> <SRCDIR>
-# Env: SMOKE_BUILD (model root, default ./build), JOBS (default 4).
+# Env: SMOKE_BUILD (model root, default ./build), JOBS (default $(nproc)).
 # Run inside the verilator docker image. The produced binary runs on the
-# host (single process, --threads 4 at sim time). Adapted from the QA4
+# host. VERILATOR_THREADS selects model and runtime threads. From the QA4
 # gbaaudio probe (same fast SDRAM-poke ROM load, same per-frame aggregates).
 set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
-JOBS=${JOBS:-4}
+JOBS=${JOBS:-$(nproc)}
+THREADS=${VERILATOR_THREADS:-1}
+case $THREADS in ''|*[!0-9]*|0) echo "VERILATOR_THREADS must be a positive integer" >&2; exit 2;; esac
+echo "Verilator model threads: $THREADS"
 B=$BLD/gba/$TAG
 R=$SRC
+VARIANT_INC=
+if [ -d "$R/src/variant/standard" ]; then VARIANT_INC="-I$R/src/variant/standard"; fi
 mkdir -p "$B/obj" "$B/run"
 cp -f "$SDIR/tb_smoke_gba.cpp" "$SDIR/prelude.sv" "$B/obj/"
 # Pre-frame-lock refs (before the upstream VERILATOR rel_toggle release)
@@ -52,9 +57,9 @@ $D/common/syncramdual.v $D/common/dpram32_block.v $D/memory/gba_eeprom.sv $D/mem
 $D/common/syncramdualnotpow2.v $D/peripherals/gba_joypad.v $D/memory/sdram_sim.v \
 $D/sound/gba_sound.v $D/common/dual_clk_fifo.v $D/cpu/gba_interrupts.v \
 $D/sound/gba_sound_ch1.v $D/sound/gba_sound_ch3.v $D/sound/gba_sound_ch4.v $D/sound/gba_sound_dma.v $D/memory/gba_gpio_rtc.v"
-verilator --top-module gbatang_top +define+CONFIG_H --Mdir "$B/obj/obj" -O3 --threads 4 \
+verilator $VARIANT_INC --top-module gbatang_top +define+CONFIG_H --Mdir "$B/obj/obj" -O3 --threads "$THREADS" \
  -Wno-WIDTH -Wno-PINMISSING -Wno-UNOPTFLAT -Wno-BLKLOOPINIT -Wno-MULTIDRIVEN \
- -cc --exe -o Vgbatang_smoke -CFLAGS "-O3" -I$D -I$D/arm -I$D/common $SRCS "$B/obj/tb_smoke_gba.cpp" >"$B/obj/last-step.log" 2>&1; rc=$?; tail -5 "$B/obj/last-step.log"; test $rc -eq 0
+ -cc --exe -o Vgbatang_smoke -CFLAGS "-O3 -DTANGCORE_SIM_THREADS=$THREADS" -I$D -I$D/arm -I$D/common $SRCS "$B/obj/tb_smoke_gba.cpp" >"$B/obj/last-step.log" 2>&1; rc=$?; tail -5 "$B/obj/last-step.log"; test $rc -eq 0
 make -j"$JOBS" -C "$B/obj/obj" -f Vgbatang_top.mk Vgbatang_smoke >"$B/obj/last-step.log" 2>&1; rc=$?; tail -5 "$B/obj/last-step.log"; test $rc -eq 0
 test -x "$B/obj/obj/Vgbatang_smoke"
 echo BUILD_OK

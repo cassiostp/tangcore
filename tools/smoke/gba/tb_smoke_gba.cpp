@@ -11,6 +11,10 @@
 #include "Vgbatang_top_gbatang_top.h"
 #include "verilated.h"
 
+#ifndef TANGCORE_SIM_THREADS
+#define TANGCORE_SIM_THREADS 1
+#endif
+
 static Vgbatang_top *top;
 static Vgbatang_top_gbatang_top *gba;
 static uint64_t sim_time = 0;
@@ -97,6 +101,8 @@ static void frame_reset() {
 
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
+    Verilated::threadContextp()->threads(TANGCORE_SIM_THREADS);
+    fprintf(stderr, "model threads: %u\n", Verilated::threadContextp()->threads());
     if (argc < 4) { fprintf(stderr, "usage: probe <rom> <frames> <tag> [dumplist]\n"); return 1; }
     const char *rompath = argv[1];
     long want_frames = atol(argv[2]);

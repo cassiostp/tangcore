@@ -9,19 +9,19 @@
 # Refs default to the round-5 integration heads. Each --<core> REF is any
 # git ref of that core's repo (SHA, branch). Models build in docker
 # (foreground); games run on the host, up to --jobs in parallel (default 4;
-# keep to at most half the machine's cores — a GBA run uses ~4 threads, see
-# below). Outputs land in $SMOKE_ROOT/runs/<date>-<tag>/ with a REPORT.md
+# budget for VERILATOR_THREADS per game). Outputs land in $SMOKE_ROOT/runs/<date>-<tag>/ with a REPORT.md
 # comparing against $SMOKE_ROOT/baseline/ (the last accepted run; first run
 # with --accept becomes the baseline).
 #
 # Parallelism: one global token bucket holds JOBS tokens, so at most JOBS
 # game runs execute at once across ALL cores (an earlier `jobs -p | wc -l`
 # limiter never throttled under dash, whose command-substitution subshells
-# see an empty job table). Slots are per game run, not per thread: the GBA
-# model is built --threads 4 (see gba/build.sh) so one GBA run can occupy
-# ~4 threads; peak load is roughly 4x(concurrent GBA runs) + 1x(the rest).
-# Every model process and every build container runs under `nice -n 19` so
-# an overnight run stays out of the way of interactive work.
+# see an empty job table). Slots are per game run: VERILATOR_THREADS selects
+# both the compiled model and runtime pool size. Budget the total model
+# threads across concurrent games; compiler JOBS is independent.
+# Containers run through $DOCKER_RUN (the simrun helper when it is on PATH,
+# else plain `docker run --rm`); build container names take SIM_PREFIX
+# (default sim<PID>) so two agents can build at once.
 #
 # --dry-run skips checkouts, builds and the real models: each game stub
 # sleeps a few seconds instead of simulating. Use it to exercise the
@@ -32,6 +32,12 @@
 set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 ROOT=$PWD
+# Runner: simrun when present (persistent ccache + full-core env), else plain docker.
+DOCKER_RUN=${DOCKER_RUN:-$(command -v simrun >/dev/null 2>&1 && echo simrun || echo "docker run --rm")};
+# ccache: simrun mounts a persistent /ccache (CCACHE_DIR), so Verilator
+# builds cache there; without it there is no cache to keep (and no writable
+# home in CI), so keep the old disable.
+case "$DOCKER_RUN" in *simrun*) CCACHE_OFF=;; *) CCACHE_OFF="-e CCACHE_DISABLE=1";; esac
 
 TAG=""
 NES_REF=34d0349
@@ -94,31 +100,31 @@ co mdtang mdtang "$MD_REF"
 co smstang smstang "$SMS_REF"
 fi
 
-# ---- builds (docker, foreground, lowest priority) ----
-# --entrypoint nice: `nice docker run` would only renice the client; the
-# build itself is a child of dockerd, so it is niced from inside.
+# ---- builds (docker, foreground) ----
+# Without simrun the build.sh defaults (JOBS, below) apply; with simrun its
+# JOBS=20 reaches the container, so no -e JOBS override is passed here.
 if [ "$DRYRUN" = 0 ]; then
 echo "=== builds ==="
-docker run --rm --name smoke_build_nes_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
-  -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
+$DOCKER_RUN --name "${SIM_PREFIX:-sim$$}_smoke_build_nes_$TAG" --user "$(id -u):$(id -g)" \
+  $CCACHE_OFF -e SMOKE_BUILD=/b -e "VERILATOR_THREADS=${VERILATOR_THREADS:-1}" \
   -v "$SDIR:/s" -v "$WORK/checkouts/nestang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/nes verilator/verilator:latest -n 19 sh build.sh "nes-$TAG" /r
-docker run --rm --name smoke_build_snes_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
-  -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
+  -w /s/nes --entrypoint sh verilator/verilator:latest build.sh "nes-$TAG" /r
+$DOCKER_RUN --name "${SIM_PREFIX:-sim$$}_smoke_build_snes_$TAG" --user "$(id -u):$(id -g)" \
+  $CCACHE_OFF -e SMOKE_BUILD=/b -e "VERILATOR_THREADS=${VERILATOR_THREADS:-1}" \
   -v "$SDIR:/s" -v "$WORK/checkouts/snestang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/snes verilator/verilator:latest -n 19 sh build.sh "snes-$TAG" /r
-docker run --rm --name smoke_build_gba_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
-  -e CCACHE_DISABLE=1 -e JOBS=4 -e SMOKE_BUILD=/b \
+  -w /s/snes --entrypoint sh verilator/verilator:latest build.sh "snes-$TAG" /r
+$DOCKER_RUN --name "${SIM_PREFIX:-sim$$}_smoke_build_gba_$TAG" --user "$(id -u):$(id -g)" \
+  $CCACHE_OFF -e SMOKE_BUILD=/b -e "VERILATOR_THREADS=${VERILATOR_THREADS:-1}" \
   -v "$SDIR:/s" -v "$WORK/checkouts/gbatang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/gba verilator/verilator:v5.028 -n 19 sh build.sh "gba-$TAG" /r
-docker run --rm --name smoke_build_md_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
-  -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
+  -w /s/gba --entrypoint sh verilator/verilator:v5.028 build.sh "gba-$TAG" /r
+$DOCKER_RUN --name "${SIM_PREFIX:-sim$$}_smoke_build_md_$TAG" --user "$(id -u):$(id -g)" \
+  $CCACHE_OFF -e SMOKE_BUILD=/b -e "VERILATOR_THREADS=${VERILATOR_THREADS:-1}" \
   -v "$SDIR:/s" -v "$WORK/checkouts/mdtang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/md verilator/verilator:latest -n 19 sh build.sh "md-$TAG" /r
-docker run --rm --name smoke_build_sms_$TAG --user "$(id -u):$(id -g)" --entrypoint nice \
-  -e CCACHE_DISABLE=1 -e JOBS=6 -e SMOKE_BUILD=/b \
+  -w /s/md --entrypoint sh verilator/verilator:latest build.sh "md-$TAG" /r
+$DOCKER_RUN --name "${SIM_PREFIX:-sim$$}_smoke_build_sms_$TAG" --user "$(id -u):$(id -g)" \
+  $CCACHE_OFF -e SMOKE_BUILD=/b -e "VERILATOR_THREADS=${VERILATOR_THREADS:-1}" \
   -v "$SDIR:/s" -v "$WORK/checkouts/smstang-$TAG:/r:ro" -v "$SMOKE_BUILD:/b" \
-  -w /s/sms verilator/verilator:latest -n 19 sh build.sh "sms-$TAG" /r
+  -w /s/sms --entrypoint sh verilator/verilator:latest build.sh "sms-$TAG" /r
 echo BUILD_ALL_OK
 fi
 

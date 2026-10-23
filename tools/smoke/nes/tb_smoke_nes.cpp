@@ -20,11 +20,17 @@
 #include "Vnestang_smoke_NES.h"
 #include "verilated.h"
 
+#ifndef TANGCORE_SIM_THREADS
+#define TANGCORE_SIM_THREADS 1
+#endif
+
 #define PX_W 256
 #define PX_H 240
 
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
+    Verilated::threadContextp()->threads(TANGCORE_SIM_THREADS);
+    fprintf(stderr, "model threads: %u\n", Verilated::threadContextp()->threads());
     uint64_t max_clk = 0;
     const char *outprefix = "smoke";
     const char *scriptpath = nullptr;

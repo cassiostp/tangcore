@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build one SMS smoke model at a given ref.
 # Usage: build.sh <TAG> <SRCDIR>
-# Env: SMOKE_BUILD (model root, default ./build), JOBS (default 8).
+# Env: SMOKE_BUILD (model root, default ./build), JOBS (default $(nproc)).
 # Run inside the verilator docker image. Source list from
 # verilator/Makefile (upstream), sim_main.cpp replaced by tb_smoke_sms.cpp,
 # stale verilog test_loader.v dropped (its instantiation is commented out;
@@ -10,9 +10,14 @@ set -e
 SDIR=$(cd "$(dirname "$0")" && pwd)
 TAG=$1; SRC=$(cd "$2" && pwd)
 BLD=${SMOKE_BUILD:-$SDIR/build}
-JOBS=${JOBS:-8}
+JOBS=${JOBS:-$(nproc)}
+THREADS=${VERILATOR_THREADS:-1}
+case $THREADS in ''|*[!0-9]*|0) echo "VERILATOR_THREADS must be a positive integer" >&2; exit 2;; esac
+echo "Verilator model threads: $THREADS"
 B=$BLD/sms/$TAG
 R=$SRC
+VARIANT_INC=
+if [ -d "$R/src/variant/standard" ]; then VARIANT_INC="-I$R/src/variant/standard"; fi
 mkdir -p "$B/obj"
 cp -f "$SDIR/tb_smoke_sms.cpp" "$B/obj/"
 D=$R/src
@@ -29,9 +34,9 @@ SRCS="$D/smstang_top.sv \
  $D/SEGASYS1_PRGDEC.v $D/spram.v $D/sprom.v $D/system.v $D/vdp.v $D/vdp_background.v \
  $D/vdp_cram.v $D/vdp_main.v $D/vdp_sprites.v $D/vdp_sprite_shifter.v $D/video.v \
  $D/cheatcodes.sv $D/compressor.sv $D/lightgun.sv"
-verilator --top-module smstang_top +1800-2023ext+sv \
+verilator $VARIANT_INC --threads "$THREADS" --top-module smstang_top +1800-2023ext+sv \
  -Wno-PINMISSING -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC \
- -cc --exe -o Vsmstang_smoke -CFLAGS "-O3" -I$D $SRCS "$B/obj/tb_smoke_sms.cpp" \
+ -cc --exe -o Vsmstang_smoke -CFLAGS "-O3 -DTANGCORE_SIM_THREADS=$THREADS" -I$D $SRCS "$B/obj/tb_smoke_sms.cpp" \
  --Mdir "$B/obj/obj" >"$B/obj/last-step.log" 2>&1; rc=$?; tail -5 "$B/obj/last-step.log"; test $rc -eq 0
 make -j"$JOBS" -C "$B/obj/obj" -f Vsmstang_top.mk Vsmstang_smoke >"$B/obj/last-step.log" 2>&1; rc=$?; tail -5 "$B/obj/last-step.log"; test $rc -eq 0
 test -x "$B/obj/obj/Vsmstang_smoke"
