@@ -7,10 +7,6 @@ name: Core bitstreams
 # the Education edition needs no licence).
 
 on:
-  # Register the experimental workflow without starting a bitstream build.
-  push:
-    branches: [exp/ci-speed]
-    paths: [.github/workflows/cores.yml, tools/ci/core-build-key.py]
   workflow_dispatch:
     inputs:
       core:
@@ -51,7 +47,6 @@ env:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch'
     name: ${{ inputs.core }} / ${{ inputs.board }} / ${{ inputs.variant }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
