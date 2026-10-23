@@ -7,6 +7,10 @@ name: Core bitstreams
 # the Education edition needs no licence).
 
 on:
+  # Register the experimental workflow without starting a bitstream build.
+  push:
+    branches: [exp/ci-speed]
+    paths: [.github/workflows/cores.yml, tools/ci/core-build-key.py]
   workflow_dispatch:
     inputs:
       core:
@@ -41,11 +45,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  BUILD_RECIPE_VERSION: 1
   GOWIN_VERSION: 1.9.11.03
   GOWIN_SHA256: 6fd392f7473b24d847b6f8ebdc7a185c591826ba35d8d0e517961030d446f9f7
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch'
     name: ${{ inputs.core }} / ${{ inputs.board }} / ${{ inputs.variant }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -57,12 +63,6 @@ jobs:
       # is the normal build
       TANGCORE_VARIANT: ${{ inputs.variant }}
     steps:
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
-          sudo apt-get autoremove --purge -qq || true
-          df -h /
-
       - name: Check out tangcore
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -80,7 +80,61 @@ jobs:
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "Building cassiostp/$CORE at $ref"
 
+      - name: Check out core sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: cassiostp/${{ env.CORE }}
+          ref: ${{ steps.core-ref.outputs.ref }}
+          path: core-src
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Compute build output key
+        id: output-key
+        run: python3 tools/ci/core-build-key.py core-src
+
+      - name: Restore cached build outputs
+        id: output-cache
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          # Only our outputs; never cache the checkout or the toolchain here.
+          path: |
+            core-src/build.log
+            core-src/impl/pnr/*.bin
+            core-src/impl/pnr/*.fs
+            core-src/impl/pnr/*.rpt.txt
+            core-src/impl/pnr/*.tr
+            core-src/impl/pnr/*_tr_content.html
+            core-src/impl/pnr/*.tr.html
+          key: ${{ steps.output-key.outputs.key }}
+
+      - name: Report build output cache
+        env:
+          CACHE_HIT: ${{ steps.output-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = true ]; then
+            echo 'Build output cache HIT: skipping Gowin; rechecking timing.'
+            echo 'Output cache: **HIT**. Gowin skipped; timing gate rerun.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Build output cache MISS: running Gowin.'
+            echo 'Output cache: **MISS**. Running Gowin.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Check disk space
+        if: steps.output-cache.outputs.cache-hit != 'true'
+        run: |
+          df -h /
+          # The usual runner has ample room. Avoid minutes of deletion unless
+          # less than 12 GiB remains for the toolchain and build intermediates.
+          available=$(df -Pk / | awk 'NR == 2 {print $4}')
+          if [ "$available" -lt 12582912 ]; then
+            sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+            sudo apt-get autoremove --purge -qq || true
+            df -h /
+          fi
+
       - name: Restore cached Gowin EDA
+        if: steps.output-cache.outputs.cache-hit != 'true'
         id: gowin-cache
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
@@ -88,6 +142,7 @@ jobs:
           key: gowin-${{ env.GOWIN_VERSION }}-education-linux-${{ runner.arch }}
 
       - name: Install Gowin EDA Education
+        if: steps.output-cache.outputs.cache-hit != 'true'
         env:
           CACHE_HIT: ${{ steps.gowin-cache.outputs.cache-hit }}
         run: |
@@ -117,6 +172,7 @@ jobs:
           rm -f /tmp/gowin.tar.gz
 
       - name: Locate gw_sh
+        if: steps.output-cache.outputs.cache-hit != 'true'
         run: |
           set -eo pipefail
           gws=$(find "$HOME/gowin" -type f -path '*/IDE/bin/gw_sh' | head -n1)
@@ -129,6 +185,7 @@ jobs:
           echo "GOWIN_ROOT=${gws%/IDE/bin/gw_sh}" >> "$GITHUB_ENV"
 
       - name: Install system libraries
+        if: steps.output-cache.outputs.cache-hit != 'true'
         run: |
           set -eo pipefail
           sudo apt-get update -qq
@@ -137,16 +194,9 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends $pkgs libglib2.0-0t64 ||
             sudo apt-get install -y -qq --no-install-recommends $pkgs libglib2.0-0
 
-      - name: Check out core sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: cassiostp/${{ env.CORE }}
-          ref: ${{ steps.core-ref.outputs.ref }}
-          path: core-src
-          submodules: recursive
-          persist-credentials: false
-
       - name: Build bitstream
+        id: build
+        if: steps.output-cache.outputs.cache-hit != 'true'
         working-directory: core-src
         env:
           QT_QPA_PLATFORM: offscreen
@@ -169,6 +219,8 @@ jobs:
           exit "${PIPESTATUS[0]}"
 
       - name: Check timing and bitstream
+        id: timing
+        if: ${{ !cancelled() && (steps.build.outcome == 'success' || steps.output-cache.outputs.cache-hit == 'true') }}
         working-directory: core-src
         run: |
           python3 <<'PY'
@@ -233,8 +285,27 @@ jobs:
               if res:
                   s.write('\n```\n' + '\n'.join(res) + '\n```\n')
 
+          # Completed reports can be cached even when they fail timing. The
+          # same gate is rerun on every hit, so a cached FAIL stays a FAIL.
+          cacheable = bool(bins) and bool(srcs) and set(viol) == {'Setup', 'Hold'}
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'cacheable={str(cacheable).lower()}\n')
           sys.exit(0 if ok else 1)
           PY
+
+      - name: Save completed build outputs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.timing.outputs.cacheable == 'true' && steps.output-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            core-src/build.log
+            core-src/impl/pnr/*.bin
+            core-src/impl/pnr/*.fs
+            core-src/impl/pnr/*.rpt.txt
+            core-src/impl/pnr/*.tr
+            core-src/impl/pnr/*_tr_content.html
+            core-src/impl/pnr/*.tr.html
+          key: ${{ steps.output-key.outputs.key }}
 
       - name: Collect artifact files
         if: always()
